@@ -1,147 +1,212 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TikTok Recharge</title>
+  <title>TikTok Coins Recharge</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8f8f8; margin: 0; padding: 20px; }
-    .container { max-width: 400px; margin: 40px auto; background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    input { width: 100%; height: 44px; border: 1px solid #ddd; border-radius: 8px; padding: 0 12px; box-sizing: border-box; outline: none; margin-bottom: 12px; }
-    .profile { display: none; align-items: center; gap: 12px; margin-top: 16px; padding: 12px; background: #f0f0f0; border-radius: 12px; }
-    .profile.show { display: flex; }
-    .avatar { width: 48px; height: 48px; border-radius: 50%; background: #ccc; flex-shrink: 0; overflow: hidden; }
-    .pinfo { overflow: hidden; }
-    .pname { font-weight: bold; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
-    .pdesc { font-size: 12px; color: #666; margin-top: 2px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8f8f8; margin: 0; padding: 0; color: #121212; }
+    .header { background: #fff; border-bottom: 1px solid #e1e1e1; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 18px; }
+    .logo svg { width: 28px; height: 28px; }
+    .container { max-width: 600px; margin: 24px auto; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .input-group { margin-bottom: 20px; }
+    .input-group label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .input-wrapper { position: relative; }
+    .input-wrapper input { width: 100%; height: 48px; border: 1px solid #ccc; border-radius: 8px; padding: 0 16px; font-size: 16px; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
+    .input-wrapper input:focus { border-color: #fe2c55; }
+    .profile-card { display: none; align-items: center; gap: 12px; margin-top: 12px; padding: 12px; background: #f1f1f2; border-radius: 8px; }
+    .profile-card.show { display: flex; }
+    .avatar { width: 48px; height: 48px; border-radius: 50%; background: #dbdbdb; overflow: hidden; flex-shrink: 0; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .user-info { overflow: hidden; }
+    .username-text { font-weight: 700; font-size: 15px; margin: 0; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+    .nickname-text { font-size: 13px; color: #666; margin: 2px 0 0; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+    .followers-text { font-size: 12px; color: #888; margin: 2px 0 0; }
+    .coins-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
+    .coin-card { border: 2px solid #eee; border-radius: 12px; padding: 16px 12px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .coin-card:hover, .coin-card.active { border-color: #fe2c55; background-color: #fff5f7; }
+    .coin-amount { font-size: 18px; font-weight: bold; color: #121212; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .coin-price { font-size: 14px; color: #666; margin-top: 4px; }
+    .recharge-btn { width: 100%; height: 50px; background-color: #fe2c55; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; margin-top: 24px; cursor: pointer; transition: background-color 0.2s; }
+    .recharge-btn:hover { background-color: #e02447; }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h2>TikTok 查询</h2>
-  <input id="username" placeholder="输入 TikTok 用户名 (如: khaby.lame)" />
-
-  <div id="profile" class="profile">
-    <div class="avatar"></div>
-    <div class="pinfo">
-      <div class="pname">@username</div>
-      <div class="pdesc">Loading...</div>
-      <div class="pdesc">0 Followers</div>
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="#000"><path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-2.901 2.88 2.896 2.896 0 0 1-2.893-2.88 2.896 2.896 0 0 1 2.893-2.88c.27 0 .531.037.78.106V9.45a6.332 6.332 0 0 0-.78-.048c-3.522 0-6.381 2.846-6.381 6.36 0 3.513 2.859 6.36 6.381 6.36 3.523 0 6.38-2.847 6.38-6.36V9.227a8.211 8.211 0 0 0 4.721 1.488V7.27a4.81 4.81 0 0 1-1.07-.584z"/></svg>
+      <span>Recharge Coins</span>
     </div>
   </div>
-</div>
 
-<!-- 登录弹窗遮罩 -->
-<div id="authModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px);">
-  <div style="background:#fff;padding:24px;border-radius:16px;width:320px;box-shadow:0 10px 30px rgba(0,0,0,0.3);text-align:center;color:#333;">
-    <h3 style="margin:0 0 16px;font-size:18px;">卡密/账号验证登录</h3>
-    <input id="loginAcc" placeholder="请输入账号" style="width:100%;height:40px;border:1px solid #ddd;border-radius:8px;padding:0 12px;margin-bottom:10px;outline:none;font-size:14px;box-sizing:border-box;" />
-    <input id="loginPwd" type="password" placeholder="请输入密码" style="width:100%;height:40px;border:1px solid #ddd;border-radius:8px;padding:0 12px;margin-bottom:16px;outline:none;font-size:14px;box-sizing:border-box;" />
-    <button id="doLoginBtn" style="width:100%;height:42px;background:#fe1742;color:#fff;border:none;border-radius:8px;font-weight:bold;font-size:15px;cursor:pointer;">验证并登录</button>
+  <div class="container">
+    <div class="input-group">
+      <label for="username">Account</label>
+      <div class="input-wrapper">
+        <input id="username" type="text" placeholder="Enter TikTok username (e.g. khaby.lame)" autocomplete="off" />
+      </div>
+
+      <div id="profile" class="profile-card">
+        <div class="avatar" id="avatarBox"></div>
+        <div class="user-info">
+          <p class="username-text" id="pUsername">@username</p>
+          <p class="nickname-text" id="pNickname">Loading...</p>
+          <p class="followers-text" id="pFollowers">0 Followers</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="coins-grid">
+      <div class="coin-card active">
+        <div class="coin-amount">70 🪙</div>
+        <div class="coin-price">$0.74</div>
+      </div>
+      <div class="coin-card">
+        <div class="coin-amount">350 🪙</div>
+        <div class="coin-price">$3.70</div>
+      </div>
+      <div class="coin-card">
+        <div class="coin-amount">1,400 🪙</div>
+        <div class="coin-price">$14.80</div>
+      </div>
+      <div class="coin-card">
+        <div class="coin-amount">3,500 🪙</div>
+        <div class="coin-price">$37.00</div>
+      </div>
+      <div class="coin-card">
+        <div class="coin-amount">7,000 🪙</div>
+        <div class="coin-price">$74.00</div>
+      </div>
+      <div class="coin-card">
+        <div class="coin-amount">17,500 🪙</div>
+        <div class="coin-price">$185.00</div>
+      </div>
+    </div>
+
+    <button class="recharge-btn" onclick="handleRecharge()">Recharge</button>
   </div>
-</div>
 
-<script>
-  const $ = selector => document.querySelector(selector);
+  <!-- 登录拦截弹窗遮罩 -->
+  <div id="authModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px);">
+    <div style="background:#fff;padding:24px;border-radius:16px;width:320px;box-shadow:0 10px 30px rgba(0,0,0,0.3);text-align:center;color:#333;">
+      <h3 style="margin:0 0 16px;font-size:18px;">卡密/账号验证登录</h3>
+      <input id="loginAcc" placeholder="请输入账号" style="width:100%;height:40px;border:1px solid #ddd;border-radius:8px;padding:0 12px;margin-bottom:10px;outline:none;font-size:14px;box-sizing:border-box;" />
+      <input id="loginPwd" type="password" placeholder="请输入密码" style="width:100%;height:40px;border:1px solid #ddd;border-radius:8px;padding:0 12px;margin-bottom:16px;outline:none;font-size:14px;box-sizing:border-box;" />
+      <button id="doLoginBtn" style="width:100%;height:42px;background:#fe2c55;color:#fff;border:none;border-radius:8px;font-weight:bold;font-size:15px;cursor:pointer;">验证并登录</button>
+    </div>
+  </div>
 
-  // 1. 设备指纹逻辑
-  function getDeviceId() {
-    let id = localStorage.getItem('tiktok_device_id');
-    if (!id) {
-      id = 'dev_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
-      localStorage.setItem('tiktok_device_id', id);
-    }
-    return id;
-  }
-  const deviceId = getDeviceId();
-
-  // 2. 登录弹窗展示控制
-  const authModal = document.getElementById('authModal');
-  if (localStorage.getItem('tiktok_token')) {
-    authModal.style.display = 'none';
-  }
-
-  document.getElementById('doLoginBtn').onclick = async function() {
-    const acc = document.getElementById('loginAcc').value.trim();
-    const pwd = document.getElementById('loginPwd').value.trim();
-
-    if (!acc || !pwd) return alert('请输入账号和密码！');
-
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: acc, password: pwd, deviceId: deviceId })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        localStorage.setItem('tiktok_token', data.token);
-        authModal.style.display = 'none';
-        alert('验证成功！');
-      } else {
-        alert(data.message);
+  <script>
+    // 1. 生成/获取本地唯一设备标识
+    function getDeviceId() {
+      let id = localStorage.getItem('tiktok_device_id');
+      if (!id) {
+        id = 'dev_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+        localStorage.setItem('tiktok_device_id', id);
       }
-    } catch(e) {
-      alert('网络异常，请重试');
+      return id;
     }
-  };
+    const deviceId = getDeviceId();
 
-  // 3. TikTok 查询逻辑
-  var profileTimer, generatedFor = '';
-  const usernameInput = document.getElementById('username');
+    // 2. 登录弹窗展示控制
+    const authModal = document.getElementById('authModal');
+    if (localStorage.getItem('tiktok_token')) {
+      authModal.style.display = 'none';
+    }
 
-  if (usernameInput) {
-    usernameInput.addEventListener('input', function() {
-      var value = usernameInput.value.trim().replace(/^@/, '');
-      const profile = $('#profile');
-      if (!value) {
-        profile.classList.remove('show');
-        generatedFor = '';
-        return;
-      }
+    document.getElementById('doLoginBtn').onclick = async function() {
+      const acc = document.getElementById('loginAcc').value.trim();
+      const pwd = document.getElementById('loginPwd').value.trim();
 
-      clearTimeout(profileTimer);
-      profileTimer = setTimeout(async function() {
-        if (value === generatedFor) return;
-        generatedFor = value;
+      if (!acc || !pwd) return alert('请输入账号和密码！');
 
-        profile.classList.add('show');
-        $('#profile .pname').textContent = '@' + value;
-        document.querySelectorAll('#profile .pdesc')[0].textContent = 'Loading real data...';
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: acc, password: pwd, deviceId: deviceId })
+        });
+        const data = await res.json();
 
-        try {
-          const res = await fetch('/api/tiktok-user?username=' + encodeURIComponent(value), {
-            headers: {
-              'Authorization': localStorage.getItem('tiktok_token') || '',
-              'X-Device-Id': deviceId
-            }
-          });
-          const data = await res.json();
-
-          if (data.success) {
-            var av = $('#profile .avatar');
-            av.style.background = 'none';
-            av.innerHTML = '<img src="' + data.avatar + '" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
-            
-            $('#profile .pname').textContent = '@' + data.username;
-            document.querySelectorAll('#profile .pdesc')[0].textContent = data.nickname;
-            $('#profile .pdesc:last-child').textContent = data.followers;
-          } else {
-            if (res.status === 401 || res.status === 403) {
-              localStorage.removeItem('tiktok_token');
-              authModal.style.display = 'flex';
-              alert(data.message);
-            }
-            document.querySelectorAll('#profile .pdesc')[0].textContent = 'User not found';
-          }
-        } catch (err) {
-          document.querySelectorAll('#profile .pdesc')[0].textContent = 'Failed to load';
+        if (data.success) {
+          localStorage.setItem('tiktok_token', data.token);
+          authModal.style.display = 'none';
+          alert('验证成功！');
+        } else {
+          alert(data.message);
         }
-      }, 500);
+      } catch(e) {
+        alert('网络异常，请重试');
+      }
+    };
+
+    // 3. TikTok 用户实名数据实时抓取
+    var profileTimer, generatedFor = '';
+    const usernameInput = document.getElementById('username');
+    const profile = document.getElementById('profile');
+
+    if (usernameInput) {
+      usernameInput.addEventListener('input', function() {
+        var value = usernameInput.value.trim().replace(/^@/, '');
+        if (!value) {
+          profile.classList.remove('show');
+          generatedFor = '';
+          return;
+        }
+
+        clearTimeout(profileTimer);
+        profileTimer = setTimeout(async function() {
+          if (value === generatedFor) return;
+          generatedFor = value;
+
+          profile.classList.add('show');
+          document.getElementById('pUsername').textContent = '@' + value;
+          document.getElementById('pNickname').textContent = 'Loading real data...';
+
+          try {
+            const res = await fetch('/api/tiktok-user?username=' + encodeURIComponent(value), {
+              headers: {
+                'Authorization': localStorage.getItem('tiktok_token') || '',
+                'X-Device-Id': deviceId
+              }
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              const av = document.getElementById('avatarBox');
+              av.innerHTML = '<img src="' + data.avatar + '" referrerpolicy="no-referrer">';
+              
+              document.getElementById('pUsername').textContent = '@' + data.username;
+              document.getElementById('pNickname').textContent = data.nickname;
+              document.getElementById('pFollowers').textContent = data.followers;
+            } else {
+              if (res.status === 401 || res.status === 403) {
+                localStorage.removeItem('tiktok_token');
+                authModal.style.display = 'flex';
+                alert(data.message);
+              }
+              document.getElementById('pNickname').textContent = 'User not found';
+            }
+          } catch (err) {
+            document.getElementById('pNickname').textContent = 'Failed to load';
+          }
+        }, 500);
+      });
+    }
+
+    // 充值卡片选择
+    document.querySelectorAll('.coin-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.coin-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      });
     });
-  }
-</script>
+
+    function handleRecharge() {
+      alert('Recharge process initialized');
+    }
+  </script>
 </body>
 </html>
