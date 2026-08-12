@@ -8,11 +8,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // =================【全新随机账号与 1 个月到期配置】=================
 // 到期日期设置为 2026-09-13，每个账号限制 1 台设备
 const USER_DATABASE = {
-  "user_7k9a2": { password: "pX8#mQ2$vL", expireDate: "2026-09-13", maxDevices: 1 },
-  "user_3m4p8": { password: "bK5!wR9#tN", expireDate: "2026-09-13", maxDevices: 1 },
-  "user_9x1v5": { password: "zJ3$yP7*qF", expireDate: "2026-09-13", maxDevices: 1 },
-  "user_2d8c4": { password: "hM6@dN4#sW", expireDate: "2026-09-13", maxDevices: 1 },
-  "user_6b0t3": { password: "gT1%vC8!kX", expireDate: "2026-09-13", maxDevices: 1 }
+  "au0491": { password: "123456", expireDate: "2026-09-13", maxDevices: 1 },
+  "gv9384": { password: "123456", expireDate: "2026-09-13", maxDevices: 1 },
+  "ac1322": { password: "123456", expireDate: "2026-09-13", maxDevices: 1 },
+  "aa1513": { password: "123456", expireDate: "2026-09-13", maxDevices: 1 },
+  "zx1251": { password: "123456", expireDate: "2026-09-13", maxDevices: 1 }
 };
 
 // 内存中记录已绑定的设备
