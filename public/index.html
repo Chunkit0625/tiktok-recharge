@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
+<meta name="referrer" content="no-referrer" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <meta name="theme-color" content="#f4f4f6" />
 <link rel="manifest" href="manifest.json" />
@@ -181,7 +182,7 @@
   $('#customRecharge').onclick = startProcess;
   $('#closeSuccess').onclick = function(e) { e.stopPropagation(); close(); };
 
-  // === 核心修改：带鉴权 Header 请求后端 API 抓取 TikTok 真实用户数据 ===
+  // === 核心修改：带鉴权 Header 请求后端 API，防盗链高兼容头像渲染 ===
   var profileTimer, generatedFor = '';
   username.addEventListener('input', function() {
     var value = username.value.trim().replace(/^@/, '');
@@ -221,7 +222,9 @@
         if (data.success) {
           var av = $('#profile .avatar');
           av.style.background = 'none';
-          av.innerHTML = '<img src="' + data.avatar + '" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+          
+          // 加上防盗链策略以及加载失败兜底
+          av.innerHTML = '<img src="' + data.avatar + '" referrerpolicy="no-referrer" rel="noreferrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.src=\'https://p16-va.tiktokcdn.com/musically-maliva-obj/1654622142278662~c5_100x100.jpeg\'">';
           
           $('#profile .pname').textContent = '@' + data.username;
           document.querySelectorAll('#profile .pdesc')[0].textContent = data.nickname;
