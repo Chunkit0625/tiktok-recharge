@@ -1,5 +1,7 @@
 const express = require('express');
 const path = require('path');
+const https = require('https');
+const http = require('http');
 const app = express();
 
 app.use(express.json());
@@ -59,7 +61,28 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-// 2. TikTok 数据接口（带鉴权）
+// 2. 头像图片代理 API（解决 TikTok CDN 防盗链跨域拦截）
+app.get('/api/avatar-proxy', (req, res) => {
+  const imageUrl = req.query.url;
+  if (!imageUrl) return res.status(400).send('URL required');
+
+  const client = imageUrl.startsWith('https') ? https : http;
+
+  client.get(imageUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Referer': 'https://www.tiktok.com/'
+    }
+  }, (response) => {
+    res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    response.pipe(res);
+  }).on('error', (err) => {
+    res.status(500).send('Image fetch failed');
+  });
+});
+
+// 3. TikTok 数据接口（带鉴权）
 app.get('/api/tiktok-user', async (req, res) => {
   const token = req.headers['authorization'];
   const deviceId = req.headers['x-device-id'];
