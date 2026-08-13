@@ -84,9 +84,10 @@
   .key:active{background:#ddd}
   .key.del{color:#87909e;font-size:18px}
   
-  /* 修复弹幕背景过长和无法看到的问题：改为自适应文字长度且支持换行 */
-  #tiktok-live-float-container { position:fixed; bottom:130px; left:12px; width:auto; max-width: 85vw; max-height:180px; z-index:99; pointer-events:none; display:flex; flex-direction:column-reverse; gap:6px; }
-  .float-msg-item { display: inline-block; width: fit-content; max-width: 100%; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); color:#fff; padding:6px 12px; border-radius:16px; font-size:12px; animation:slideIn 0.3s ease-out; word-break:break-all; }
+  /* 优化弹幕悬浮窗样式：完美容纳头像、昵称与礼物详情 */
+  #tiktok-live-float-container { position:fixed; bottom:130px; left:12px; width:auto; max-width: 88vw; max-height:200px; z-index:99; pointer-events:none; display:flex; flex-direction:column-reverse; gap:6px; overflow:hidden; }
+  .float-msg-item { display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(4px); color:#fff; padding:6px 10px; border-radius:18px; font-size:12px; animation:slideIn 0.3s ease-out; word-break:break-all; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .float-msg-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; background: #555; flex-shrink: 0; }
   @keyframes slideIn { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:translateX(0); } }
 </style>
 <style>
@@ -108,11 +109,11 @@
 </head>
 <body>
 
-<!-- 登录验证层：已内置直播间ID输入框，在密码解锁时直接静默连接 -->
+<!-- 登录验证层：内置直播间ID输入框默认留空 -->
 <div id="auth-overlay">
   <div class="auth-box">
     <h3>安全访问验证</h3>
-    <input type="text" id="target-live-input" placeholder="输入要监控的直播间ID (如: username)" value="shengon01" style="margin-bottom:10px;" />
+    <input type="text" id="target-live-input" placeholder="输入要监控的直播间ID (可留空)" value="" style="margin-bottom:10px;" />
     <input type="password" id="auth-input" placeholder="请输入访问密码" autocomplete="current-password" />
     <button id="auth-btn">确认进入</button>
     <div id="auth-error" class="auth-error">密码错误，请重新输入</div>
@@ -136,7 +137,6 @@
     
     <div class="card" style="display:flex;align-items:center;gap:10px"><span style="font-size:30px">✋<i class="coin"></i></span><div><strong>Invite &amp; Get Rewards</strong><p style="margin:3px 0 0;font-size:11px;color:#777">Check out this new feature!</p></div><span style="margin-left:auto;font-size:24px;font-weight:300">›</span></div>
     
-    <!-- 提示：如果你想更换下面这一项前面的图片，可以直接把下方的 span 标签换成 <img src="你的图片路径" style="width:24px;height:24px;object-fit:cover;" /> 即可 -->
     <div class="card" style="display:flex;align-items:center;gap:10px">
       <div style="font-size:0;position:relative;width:24px;height:24px">
         <span style="content:'';width:16px;height:24px;border:2px solid #4d85bd;border-radius:4px;display:block"></span>
@@ -167,8 +167,8 @@
         var overlay = document.getElementById("auth-overlay");
         if (overlay) overlay.remove();
         document.body.style.visibility = "visible";
-        const savedTarget = sessionStorage.getItem("monitor_target") || "shengon01";
-        socket.emit('setTarget', savedTarget);
+        const savedTarget = sessionStorage.getItem("monitor_target") || "";
+        if (savedTarget) socket.emit('setTarget', savedTarget);
       });
       return;
     }
@@ -184,10 +184,12 @@
       function verify() {
         if (input.value === pass) {
           sessionStorage.setItem("auth_passed", "true");
-          const targetVal = targetInput ? targetInput.value.trim() : "shengon01";
+          const targetVal = targetInput ? targetInput.value.trim() : "";
           sessionStorage.setItem("monitor_target", targetVal);
           
-          socket.emit('setTarget', targetVal);
+          if (targetVal) {
+            socket.emit('setTarget', targetVal);
+          }
 
           var overlay = document.getElementById("auth-overlay");
           if (overlay) overlay.remove();
@@ -357,6 +359,7 @@
 
   const floatContainer = document.getElementById('tiktok-live-float-container');
 
+  // 前端渲染弹幕与礼物详情（包含头像、用户名及礼物数量）
   socket.on('liveData', (data) => {
     if (data.type === 'system') { 
       console.log(data.comment);
@@ -365,12 +368,35 @@
     
     const item = document.createElement('div');
     item.className = 'float-msg-item';
-    item.innerHTML = data.type === 'chat' 
-      ? `<b style="color:#25F4EE">${data.nickname || '观众'}</b>: ${data.comment || ''}` 
-      : `<b style="color:#ffeb3b">🎁 ${data.nickname || '观众'}</b> 送出 ${data.giftName || '礼物'} x${data.count || 1}`;
+
+    const avatarHtml = data.avatar 
+      ? `<img class="float-msg-avatar" src="${data.avatar}" referrerpolicy="no-referrer" />` 
+      : `<div class="float-msg-avatar" style="display:grid;place-items:center;font-size:10px;font-weight:bold;">${(data.nickname || 'U').charAt(0)}</div>`;
+
+    if (data.type === 'chat') {
+      item.innerHTML = `
+        ${avatarHtml}
+        <div>
+          <b style="color:#25F4EE;font-size:11px;">${data.nickname || '观众'}</b>
+          <div style="color:#fff;margin-top:1px;">${data.comment || ''}</div>
+        </div>
+      `;
+    } else if (data.type === 'gift') {
+      item.innerHTML = `
+        ${avatarHtml}
+        <div>
+          <b style="color:#ffeb3b;font-size:11px;">🎁 ${data.nickname || '观众'}</b>
+          <div style="color:#fff;margin-top:1px;">送出 <span style="color:#ff4d4d;font-weight:bold;">${data.giftName || '礼物'}</span> <span style="color:#00ffcc;">x${data.count || 1}</span></div>
+        </div>
+      `;
+    }
     
     floatContainer.prepend(item);
-    setTimeout(() => item.remove(), 5000);
+    // 控制最多显示10条，超出自动移除
+    if (floatContainer.children.length > 10) {
+      floatContainer.lastElementChild.remove();
+    }
+    setTimeout(() => item.remove(), 6000);
   });
 
   document.querySelectorAll('.method').forEach(function(method) {
