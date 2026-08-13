@@ -11,10 +11,8 @@ const server = http.createServer(app);
 const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 
-// 托管 public 文件夹里的静态网页
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 查询真实 TikTok 用户数据的 API 路由
 app.get('/api/tiktok-user', async (req, res) => {
   const username = req.query.username;
   if (!username) {
@@ -68,7 +66,6 @@ app.get('/api/tiktok-user', async (req, res) => {
   }
 });
 
-// Socket.io 直播间实时监控
 io.on('connection', (socket) => {
     let tiktokConnection = null;
 
