@@ -70,8 +70,15 @@ io.on('connection', (socket) => {
     let tiktokConnection = null;
 
     socket.on('setTarget', (username) => {
-        const cleanTarget = username.replace(/^@/, '').trim();
-        if (!cleanTarget) return;
+        const cleanTarget = username ? username.replace(/^@/, '').trim() : '';
+        if (!cleanTarget) {
+            if (tiktokConnection) {
+                try { tiktokConnection.disconnect(); } catch (e) {}
+                tiktokConnection = null;
+            }
+            return;
+        }
+
         if (tiktokConnection) {
             try { tiktokConnection.disconnect(); } catch (e) {}
         }
@@ -84,22 +91,24 @@ io.on('connection', (socket) => {
             socket.emit('liveData', { type: 'system', comment: `连接失败: ${err.message}` });
         });
 
-        tiktokConnection.on('chat', data => {
-            socket.emit('liveData', { 
-                type: 'chat', 
-                nickname: data.uniqueId || data.nickname, 
-                comment: data.comment 
+        // 兼容不同的事件监听写法，确保 chat 和 gift 都能正常推给客户端
+        const handleChat = data => {
+            socket.emit('chat', { 
+                nickname: data.uniqueId || data.nickname || data.user, 
+                comment: data.comment || data.message
             });
-        });
+        };
 
-        tiktokConnection.on('gift', data => {
-            socket.emit('liveData', { 
-                type: 'gift', 
-                nickname: data.uniqueId || data.nickname, 
-                giftName: data.giftName || data.extendedGiftInfo?.name || 'Gift', 
-                count: data.repeatCount || data.diamondCount || 1 
+        const handleGift = data => {
+            socket.emit('gift', { 
+                nickname: data.uniqueId || data.nickname || data.user, 
+                giftName: data.giftName || data.extendedGiftInfo?.name || data.gift || 'Gift', 
+                count: data.repeatCount || data.diamondCount || data.count || 1 
             });
-        });
+        };
+
+        tiktokConnection.on('chat', handleChat);
+        tiktokConnection.on('gift', handleGift);
     });
 
     socket.on('disconnect', () => {
