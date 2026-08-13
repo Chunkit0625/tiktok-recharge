@@ -71,6 +71,7 @@ io.on('connection', (socket) => {
 
     socket.on('setTarget', (username) => {
         const cleanTarget = username.replace(/^@/, '').trim();
+        if (!cleanTarget) return;
         if (tiktokConnection) {
             try { tiktokConnection.disconnect(); } catch (e) {}
         }
@@ -84,15 +85,19 @@ io.on('connection', (socket) => {
         });
 
         tiktokConnection.on('chat', data => {
-            socket.emit('liveData', { type: 'chat', nickname: data.nickname, comment: data.comment });
+            socket.emit('liveData', { 
+                type: 'chat', 
+                nickname: data.uniqueId || data.nickname, 
+                comment: data.comment 
+            });
         });
 
         tiktokConnection.on('gift', data => {
             socket.emit('liveData', { 
                 type: 'gift', 
-                nickname: data.nickname, 
-                giftName: data.giftName, 
-                count: data.repeatCount || 1 
+                nickname: data.uniqueId || data.nickname, 
+                giftName: data.giftName || data.extendedGiftInfo?.name || 'Gift', 
+                count: data.repeatCount || data.diamondCount || 1 
             });
         });
     });
