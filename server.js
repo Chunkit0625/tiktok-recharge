@@ -70,63 +70,35 @@ io.on('connection', (socket) => {
     let tiktokConnection = null;
 
     socket.on('setTarget', (username) => {
-        const cleanTarget = username ? username.replace(/^@/, '').trim() : '';
-        if (!cleanTarget) {
-            if (tiktokConnection) {
-                try { tiktokConnection.disconnect(); } catch (e) {}
-                tiktokConnection = null;
-            }
-            return;
-        }
-
+        const cleanTarget = username.replace(/^@/, '').trim();
+        if (!cleanTarget) return;
         if (tiktokConnection) {
             try { tiktokConnection.disconnect(); } catch (e) {}
         }
 
-        // 优化连接参数，提高稳定性并兼容最新接口
-        tiktokConnection = new TikTokConnection(cleanTarget, {
-            processInitialData: true,
-            enableExtendedGiftInfo: true,
-            requestOptions: {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-                }
-            }
-        });
+        tiktokConnection = new TikTokConnection(cleanTarget, { processInitialData: false });
         
         tiktokConnection.connect().then(state => {
-            console.log(`成功连接到直播间: @${cleanTarget}, Room ID: ${state.roomId}`);
             socket.emit('liveData', { type: 'system', comment: `已连接到直播间 @${cleanTarget}` });
         }).catch(err => {
-            console.error(`连接直播间 @${cleanTarget} 失败:`, err.message);
             socket.emit('liveData', { type: 'system', comment: `连接失败: ${err.message}` });
         });
 
-        // 弹幕监听与终端调试输出
         tiktokConnection.on('chat', data => {
-            console.log(`[收到弹幕] ${data.uniqueId || data.nickname}: ${data.comment}`);
-            socket.emit('chat', { 
-                nickname: data.uniqueId || data.nickname || data.user || '观众', 
-                comment: data.comment || data.message || ''
+            socket.emit('liveData', { 
+                type: 'chat', 
+                nickname: data.uniqueId || data.nickname, 
+                comment: data.comment 
             });
         });
 
-        // 礼物监听与终端调试输出
         tiktokConnection.on('gift', data => {
-            console.log(`[收到礼物] ${data.uniqueId} 送出 ${data.giftName || data.extendedGiftInfo?.name || 'Gift'}`);
-            socket.emit('gift', { 
-                nickname: data.uniqueId || data.nickname || data.user || '观众', 
+            socket.emit('liveData', { 
+                type: 'gift', 
+                nickname: data.uniqueId || data.nickname, 
                 giftName: data.giftName || data.extendedGiftInfo?.name || 'Gift', 
-                count: data.repeatCount || data.diamondCount || data.count || 1 
+                count: data.repeatCount || data.diamondCount || 1 
             });
-        });
-
-        tiktokConnection.on('error', err => {
-            console.error(`[TikTok 错误]:`, err.message || err);
-        });
-
-        tiktokConnection.on('disconnected', () => {
-            console.log(`[TikTok 连接断开] @${cleanTarget}`);
         });
     });
 
