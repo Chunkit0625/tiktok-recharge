@@ -136,17 +136,21 @@
       <div id="profile" class="profile"><div class="avatar"></div><div><div class="pname">@username</div><div class="pdesc">Nickname</div><div class="pdesc">0 Followers</div></div></div>
     </div>
     
-    <!-- 新增：直播实时监控展示卡片 -->
+    <!-- 自定义直播间监控面板 -->
     <div class="card" style="background: #1a1b1e; color: #fff;">
-        <div class="brandrow" style="margin-bottom:0;">
+        <div class="brandrow" style="margin-bottom:8px;">
             <div class="tiktok">♪</div>
-            <div>
-                <div class="brandname" style="color:#fff; font-size:15px;">Live Realtime Stream</div>
-                <div class="balance" style="color:#28a85b; font-size:12px;">● 实时监听中 (khaby.lame)</div>
+            <div style="flex:1;">
+                <div class="brandname" style="color:#fff; font-size:15px;">Live Realtime Monitor</div>
+                <div class="balance" style="color:#28a85b; font-size:12px;" id="monitorStatus">● 请输入开播的主播ID</div>
             </div>
         </div>
-        <div id="liveFeedBox" style="max-height: 130px; overflow-y: auto; font-size: 11px; background: #111; padding: 8px; border-radius: 6px; margin-top: 8px; font-family: monospace;">
-            <div style="color: #777;">等待接收直播间弹幕和礼物...</div>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <input id="targetStreamer" class="username" placeholder="输入主播ID (如: khaby.lame)" style="height:32px; font-size:12px; background:#252629; color:#fff; border:1px solid #333;" />
+            <button id="connectStreamBtn" style="height:32px; padding:0 12px; background:#fe1742; color:#fff; border:0; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">监控</button>
+        </div>
+        <div id="liveFeedBox" style="max-height: 120px; overflow-y: auto; font-size: 11px; background: #111; padding: 8px; border-radius: 6px; font-family: monospace;">
+            <div style="color: #777;">输入主播ID并点击“监控”开始接收弹幕...</div>
         </div>
     </div>
 
@@ -163,7 +167,7 @@
 </main>
 
 <script>
-  // 密码强力安全验证逻辑
+  // 密码验证逻辑
   (function() {
     var pass = "Ljj321.0";
     if (sessionStorage.getItem("auth_passed") === "true") {
@@ -362,16 +366,18 @@
   update();
 </script>
 
-<!-- 前端 WebSocket 实时监听脚本 -->
+<!-- WebSocket 实时监听与动态控制脚本 -->
 <script>
+  let ws;
   (function() {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${location.host}`);
+    ws = new WebSocket(`${protocol}//${location.host}`);
 
     ws.onmessage = function(event) {
       try {
         const data = JSON.parse(event.data);
         const feedBox = document.getElementById('liveFeedBox');
+        const statusBox = document.getElementById('monitorStatus');
         if (!feedBox) return;
 
         let line = document.createElement('div');
@@ -383,6 +389,7 @@
           line.innerHTML = `<span style="color:#FE2C55">[礼物]</span> <b style="color:#fff">${data.nickname}</b> 送出了 <span style="color:#f0c62f">${data.giftName} x${data.count}</span>`;
         } else {
           line.innerHTML = `<span style="color:#888">[系统]</span> ${data.comment}`;
+          if(statusBox) statusBox.textContent = '● ' + data.comment;
         }
 
         feedBox.appendChild(line);
@@ -395,6 +402,22 @@
         console.error('WebSocket解析错误', e);
       }
     };
+
+    document.addEventListener("DOMContentLoaded", function() {
+      const btn = document.getElementById('connectStreamBtn');
+      const input = document.getElementById('targetStreamer');
+      
+      if (btn && input) {
+        btn.onclick = function() {
+          const val = input.value.trim();
+          if (!val) return;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'setTarget', username: val }));
+            document.getElementById('liveFeedBox').innerHTML = `<div style="color: #f0c62f;">正在连接 @${val} 的直播间...</div>`;
+          }
+        };
+      }
+    });
   })();
 </script>
 
