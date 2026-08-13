@@ -1,16 +1,13 @@
 {
-  "name": "tiktok-recharge-tool",
+  "name": "tiktok-tool-integrated",
   "version": "1.0.0",
-  "description": "TikTok Recharge Tool with Real User Data and Live Monitor",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "axios": "^1.6.8",
     "express": "^4.19.2",
     "socket.io": "^4.7.5",
-    "tiktok-live-connector": "^2.4.3",
-    "ws": "^8.21.3"
+    "tiktok-live-connector": "^2.4.3"
   }
 }
