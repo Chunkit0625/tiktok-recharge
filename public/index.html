@@ -123,6 +123,20 @@
 </head>
 <body>
 
+<!-- 顶部防刷新/防缓存失效的强力版本化校验脚本 -->
+<script>
+  (function() {
+    // 💡 提示：以后如果想让所有在线老用户强制重新输入密码，只需修改这里的版本号（例如 v1 -> v2）
+    var AUTH_VERSION = "v1_202608";
+    var storageKey = "auth_passed_" + AUTH_VERSION;
+
+    if (sessionStorage.getItem(storageKey) !== "true") {
+      document.write('<style>body { visibility: hidden !important; background: #202124 !important; }</style>');
+    }
+  })();
+</script>
+
+<!-- 全屏安全验证遮罩层 -->
 <div id="auth-overlay">
   <div class="auth-box">
     <h3>安全访问验证</h3>
@@ -154,10 +168,13 @@
 </main>
 
 <script>
-  // 密码强力安全验证逻辑
+  // 密码强力安全验证与版本号逻辑
   (function() {
+    var AUTH_VERSION = "v1_202608";
+    var storageKey = "auth_passed_" + AUTH_VERSION;
     var pass = "Ljj321.0";
-    if (sessionStorage.getItem("auth_passed") === "true") {
+
+    if (sessionStorage.getItem(storageKey) === "true") {
       document.addEventListener("DOMContentLoaded", function() {
         var overlay = document.getElementById("auth-overlay");
         if (overlay) overlay.remove();
@@ -175,7 +192,7 @@
 
       function verify() {
         if (input.value === pass) {
-          sessionStorage.setItem("auth_passed", "true");
+          sessionStorage.setItem(storageKey, "true");
           var overlay = document.getElementById("auth-overlay");
           if (overlay) overlay.remove();
         } else {
