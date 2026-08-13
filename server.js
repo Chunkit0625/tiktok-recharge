@@ -1,126 +1,83 @@
 const express = require('express');
 const http = require('http');
-const WebSocket = require('ws');
-const axios = require('axios');
-const path = require('path');
+const { Server } = require('socket.io');
 const { WebcastPushConnection } = require('tiktok-live-connector');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const io = new Server(server);
 
-const PORT = process.env.PORT || 3000;
+// 托管 public 文件夹中的静态网页
+app.use(express.static('public'));
 
-// 托管静态网页
-app.use(express.static(path.join(__dirname, 'public')));
+io.on('connection', (socket) => {
+    console.log('[系统] 客户端已通过 WebSocket 连接');
+    let tiktokConnection = null;
 
-// TikTok 用户查询 API
-app.get('/api/tiktok-user', async (req, res) => {
-    const username = req.query.username;
-    if (!username) {
-        return res.status(400).json({ success: false, message: 'Username required' });
-    }
+    // 接收前端发来的监控目标
+    socket.on('setTarget', (username) => {
+        console.log(`[系统] 正在尝试连接主播: @${username}`);
 
-    const cleanUser = username.replace(/^@/, '').trim();
-    const targetUrl = `https://www.tiktok.com/@${cleanUser}`;
+        if (tiktokConnection) {
+            tiktokConnection.disconnect();
+        }
 
-    try {
-        const response = await axios.get(targetUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9',
-            },
-            timeout: 8000
+        tiktokConnection = new WebcastPushConnection(username);
+
+        tiktokConnection.connect().then(state => {
+            console.log(`[成功] 已连接到房间 ID: ${state.roomId}`);
+            socket.emit('liveData', {
+                type: 'system',
+                comment: `已成功连接到 @${username} 的直播间 (RoomID: ${state.roomId})`
+            });
+        }).catch(err => {
+            console.error(`[错误] 连接 @${username} 失败:`, err.message);
+            socket.emit('liveData', {
+                type: 'system',
+                comment: `连接失败: ${err.message} (可能未开播或账号输入错误)`
+            });
         });
 
-        const regex = /<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application\/json">(.*?)<\/script>/s;
-        const match = response.data.match(regex);
-
-        if (!match) {
-            return res.status(404).json({ success: false, message: 'User not found or captcha triggered' });
-        }
-
-        const jsonData = JSON.parse(match[1]);
-        const userInfo = jsonData["__DEFAULT_SCOPE__"]?.["webapp.user-detail"]?.["userInfo"];
-
-        if (!userInfo) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        let followerCount = userInfo.stats.followerCount;
-        let followerStr = followerCount.toString();
-        if (followerCount >= 1000000) {
-            followerStr = (followerCount / 1000000).toFixed(1) + 'M';
-        } else if (followerCount >= 1000) {
-            followerStr = (followerCount / 1000).toFixed(1) + 'K';
-        }
-
-        return res.json({
-            success: true,
-            username: cleanUser,
-            nickname: userInfo.user.nickname,
-            avatar: userInfo.user.avatarMedium || userInfo.user.avatarLarger,
-            followers: `${followerStr} Followers`
+        // 监听聊天弹幕
+        tiktokConnection.on('chat', data => {
+            socket.emit('liveData', {
+                type: 'chat',
+                nickname: data.nickname,
+                comment: data.comment
+            });
         });
 
-    } catch (err) {
-        return res.status(500).json({ success: false, message: 'Failed to fetch TikTok data' });
-    }
-});
+        // 监听礼物
+        tiktokConnection.on('gift', data => {
+            socket.emit('liveData', {
+                type: 'gift',
+                nickname: data.nickname,
+                giftName: data.giftName,
+                count: data.repeatCount || data.diamondCount || 1
+            });
+        });
 
-// ==========================================
-// WebSocket 动态直播间实时监控
-// ==========================================
-wss.on('connection', (ws) => {
-    console.log('[WebSocket] 新客户端连入实时监控');
-    ws.send(JSON.stringify({ type: 'system', comment: '已连接，请输入要监控的主播ID' }));
+        // 监听下播
+        tiktokConnection.on('streamEnd', () => {
+            socket.emit('liveData', {
+                type: 'system',
+                comment: `主播 @${username} 已下播`
+            });
+        });
+    });
 
-    let currentLiveConnection = null;
-
-    ws.on('message', (message) => {
-        try {
-            const data = JSON.parse(message);
-            if (data.type === 'setTarget' && data.username) {
-                const targetLiveUser = data.username.replace(/^@/, '').trim();
-                console.log(`[直播监控] 客户端请求切换监控主播: @${targetLiveUser}`);
-
-                // 如果之前有连接，先断开
-                if (currentLiveConnection) {
-                    try { currentLiveConnection.disconnect(); } catch(e) {}
-                }
-
-                currentLiveConnection = new WebcastPushConnection(targetLiveUser);
-
-                currentLiveConnection.connect().then(state => {
-                    ws.send(JSON.stringify({ type: 'system', comment: `成功连接到 @${targetLiveUser} 直播间` }));
-                }).catch(err => {
-                    ws.send(JSON.stringify({ type: 'system', comment: `连接 @${targetLiveUser} 失败（可能未开播）` }));
-                });
-
-                currentLiveConnection.on('chat', chatData => {
-                    ws.send(JSON.stringify({
-                        type: 'chat',
-                        nickname: chatData.nickname,
-                        comment: chatData.comment
-                    }));
-                });
-
-                currentLiveConnection.on('gift', giftData => {
-                    if (giftData.giftType === 1 && !giftData.repeatEnd) return;
-                    ws.send(JSON.stringify({
-                        type: 'gift',
-                        nickname: giftData.nickname,
-                        giftName: giftData.giftName,
-                        count: giftData.repeatCount || 1
-                    }));
-                });
-            }
-        } catch (e) {
-            console.error('解析客户端消息失败', e);
+    socket.on('disconnect', () => {
+        console.log('[系统] 客户端断开连接');
+        if (tiktokConnection) {
+            tiktokConnection.disconnect();
         }
     });
 });
 
+const PORT = 3000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`==================================================`);
+    console.log(`服务已成功启动！`);
+    console.log(`请打开浏览器访问: http://localhost:${PORT}`);
+    console.log(`==================================================`);
 });
