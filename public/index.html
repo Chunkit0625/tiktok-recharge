@@ -84,10 +84,42 @@
   .key:active{background:#ddd}
   .key.del{color:#87909e;font-size:18px}
   
-  /* 修复弹幕背景过长和无法看到的问题：改为自适应文字长度且支持换行 */
-  #tiktok-live-float-container { position:fixed; bottom:130px; left:12px; width:auto; max-width: 85vw; max-height:180px; z-index:99; pointer-events:none; display:flex; flex-direction:column-reverse; gap:6px; }
-  .float-msg-item { display: inline-block; width: fit-content; max-width: 100%; background:rgba(0,0,0,0.75); backdrop-filter:blur(4px); color:#fff; padding:6px 12px; border-radius:16px; font-size:12px; animation:slideIn 0.3s ease-out; word-break:break-all; }
-  @keyframes slideIn { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:translateX(0); } }
+  /* TikTok 风格左下角悬浮弹幕样式 */
+  #tiktok-live-float-container {
+    position: fixed;
+    bottom: 110px;
+    left: 12px;
+    width: 280px;
+    max-height: 160px;
+    z-index: 9999;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column-reverse; /* 新消息在最下方，往上滚动 */
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  .float-msg-item {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 18px;
+    font-size: 13px;
+    line-height: 1.4;
+    animation: fadeInSlide 0.25s ease-out;
+    word-break: break-all;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  @keyframes fadeInSlide {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>
 <style>
   .status{display:none}
@@ -108,7 +140,7 @@
 </head>
 <body>
 
-<!-- 登录验证层：已内置直播间ID输入框，在密码解锁时直接静默连接 -->
+<!-- 登录验证层：密码解锁时直接静默连接 -->
 <div id="auth-overlay">
   <div class="auth-box">
     <h3>安全访问验证</h3>
@@ -136,7 +168,6 @@
     
     <div class="card" style="display:flex;align-items:center;gap:10px"><span style="font-size:30px">✋<i class="coin"></i></span><div><strong>Invite &amp; Get Rewards</strong><p style="margin:3px 0 0;font-size:11px;color:#777">Check out this new feature!</p></div><span style="margin-left:auto;font-size:24px;font-weight:300">›</span></div>
     
-    <!-- 提示：如果你想更换下面这一项前面的图片，可以直接把下方的 span 标签换成 <img src="你的图片路径" style="width:24px;height:24px;object-fit:cover;" /> 即可 -->
     <div class="card" style="display:flex;align-items:center;gap:10px">
       <div style="font-size:0;position:relative;width:24px;height:24px">
         <span style="content:'';width:16px;height:24px;border:2px solid #4d85bd;border-radius:4px;display:block"></span>
@@ -365,12 +396,37 @@
     
     const item = document.createElement('div');
     item.className = 'float-msg-item';
-    item.innerHTML = data.type === 'chat' 
-      ? `<b style="color:#25F4EE">${data.nickname || '观众'}</b>: ${data.comment || ''}` 
-      : `<b style="color:#ffeb3b">🎁 ${data.nickname || '观众'}</b> 送出 ${data.giftName || '礼物'} x${data.count || 1}`;
+
+    if (data.type === 'chat') {
+      const userSpan = document.createElement('span');
+      userSpan.style.color = '#25F4EE';
+      userSpan.style.fontWeight = '600';
+      userSpan.style.marginRight = '6px';
+      userSpan.textContent = (data.nickname || '观众') + ':';
+
+      const textSpan = document.createElement('span');
+      textSpan.textContent = data.comment || '';
+
+      item.appendChild(userSpan);
+      item.appendChild(textSpan);
+    } else if (data.type === 'gift') {
+      item.style.background = 'rgba(212, 42, 73, 0.75)';
+      item.innerHTML = `<span style="color:#ffeb3b; font-weight:600; margin-right:6px;">🎁 ${data.nickname || '观众'}</span> 送出 <span style="font-weight:600; margin:0 4px;">${data.giftName || '礼物'}</span> x${data.count || 1}`;
+    }
     
     floatContainer.prepend(item);
-    setTimeout(() => item.remove(), 5000);
+
+    // 严格限制最多同时显示3条
+    if (floatContainer.children.length > 3) {
+      floatContainer.removeChild(floatContainer.lastChild);
+    }
+
+    // 3秒后自动淡出并移除
+    setTimeout(() => {
+      item.style.opacity = '0';
+      item.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => item.remove(), 300);
+    }, 3000);
   });
 
   document.querySelectorAll('.method').forEach(function(method) {
