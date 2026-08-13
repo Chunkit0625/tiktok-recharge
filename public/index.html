@@ -84,7 +84,6 @@
   .key:active{background:#ddd}
   .key.del{color:#87909e;font-size:18px}
   
-  /* 直播监控与飘屏专属样式 */
   #tiktok-live-float-container { position:fixed; bottom:130px; left:12px; width:260px; max-height:180px; z-index:99; pointer-events:none; display:flex; flex-direction:column-reverse; gap:6px; }
   .float-msg-item { background:rgba(0,0,0,0.65); backdrop-filter:blur(4px); color:#fff; padding:6px 12px; border-radius:16px; font-size:11px; animation:slideIn 0.3s ease-out; word-break:break-all; }
   @keyframes slideIn { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:translateX(0); } }
@@ -122,14 +121,12 @@
   <header class="topbar"><span>Get Coins</span><span class="dots">···</span><span class="help">?</span><span class="logout">⇥</span></header>
   
   <section class="content">
-    <!-- 原有的充值卡片 -->
     <div class="card">
       <div class="brandrow"><div class="tiktok">♪</div><div><div style="font-size:17px;font-weight:700">Recharge</div><div class="balance"><span class="coin">◉</span> 136,214,651</div></div></div>
       <input id="username" class="username" placeholder="Enter username" autocomplete="off" />
       <div id="profile" class="profile"><div class="avatar"></div><div><div class="pname" style="font-weight:700;font-size:14px">@username</div><div class="pdesc" style="color:#777;font-size:12px;margin-top:3px">Nickname</div><div class="pdesc" style="color:#777;font-size:12px;margin-top:3px">0 Followers</div></div></div>
     </div>
 
-    <!-- 新增：直播间实时监控连接卡片（完美嵌入不破坏原布局） -->
     <div class="card">
       <div class="section-title">Live Realtime Monitor</div>
       <div style="display:flex; gap:8px; margin-top:6px;">
@@ -153,12 +150,10 @@
   <div id="success" class="sheet"><div class="success"><div class="success-icon" id="successIconContainer">✓</div><h2>Successful recharge</h2><p id="successText">30 Coins were sent to your account.<br/>This operation has been completed successfully.</p><button class="close-success" id="closeSuccess">Close</button></div></div>
   </div>
 
-  <!-- 实时直播弹幕/礼物浮动飘屏容器 -->
   <div id="tiktok-live-float-container"></div>
 </main>
 
 <script>
-  // 密码强力安全验证逻辑
   (function() {
     var pass = "Ljj321.0";
     if (sessionStorage.getItem("auth_passed") === "true") {
@@ -346,7 +341,6 @@
     }, 500);
   });
 
-  // Socket.io 直播飘屏前端交互逻辑
   const socket = io();
   const floatContainer = document.getElementById('tiktok-live-float-container');
   const statusText = document.getElementById('statusText');
