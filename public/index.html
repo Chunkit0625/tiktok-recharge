@@ -7,10 +7,10 @@
 <link rel="manifest" href="manifest.json" />
 <title>Get Coins - Recharge</title>
 <style>
-  /* 初始全局绝对保护：默认隐藏所有内容 */
-  body { visibility: hidden; background: #202124; }
+  /* 默认隐藏主内容，只显示遮罩，绝不会黑屏死掉 */
+  body { background: #202124; margin: 0; }
   
-  /* 全屏绝对安全遮罩层 */
+  /* 全屏安全验证遮罩层 */
   #auth-overlay {
     position: fixed;
     inset: 0;
@@ -18,7 +18,6 @@
     z-index: 999999;
     display: grid;
     place-items: center;
-    visibility: visible !important;
   }
   .auth-box {
     background: #1a1b1e;
@@ -123,20 +122,7 @@
 </head>
 <body>
 
-<!-- 顶部防刷新/防缓存失效的强力版本化校验脚本 -->
-<script>
-  (function() {
-    // 💡 提示：以后如果想让所有在线老用户强制重新输入密码，只需修改这里的版本号（例如 v1 -> v2）
-    var AUTH_VERSION = "v1_202608";
-    var storageKey = "auth_passed_" + AUTH_VERSION;
-
-    if (sessionStorage.getItem(storageKey) !== "true") {
-      document.write('<style>body { visibility: hidden !important; background: #202124 !important; }</style>');
-    }
-  })();
-</script>
-
-<!-- 全屏安全验证遮罩层 -->
+<!-- 全屏安全验证遮罩层（默认存在，通过验证后自动移除） -->
 <div id="auth-overlay">
   <div class="auth-box">
     <h3>安全访问验证</h3>
@@ -168,23 +154,21 @@
 </main>
 
 <script>
-  // 密码强力安全验证与版本号逻辑
+  // 密码强力安全验证与版本号逻辑（安全无害版）
   (function() {
-    var AUTH_VERSION = "v1_202608";
+    var AUTH_VERSION = "v1_202608"; // 以后想让所有人重新输密码，改这里即可 (如 v2_202608)
     var storageKey = "auth_passed_" + AUTH_VERSION;
     var pass = "Ljj321.0";
 
+    // 如果之前已经验证过，直接移除遮罩
     if (sessionStorage.getItem(storageKey) === "true") {
-      document.addEventListener("DOMContentLoaded", function() {
-        var overlay = document.getElementById("auth-overlay");
-        if (overlay) overlay.remove();
-        document.body.style.visibility = "visible";
-      });
+      var overlay = document.getElementById("auth-overlay");
+      if (overlay) overlay.remove();
       return;
     }
 
+    // 未验证时，监听 DOM 加载后绑定交互
     document.addEventListener("DOMContentLoaded", function() {
-      document.body.style.visibility = "visible";
       var input = document.getElementById("auth-input");
       var btn = document.getElementById("auth-btn");
       var errorTip = document.getElementById("auth-error");
