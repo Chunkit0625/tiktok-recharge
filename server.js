@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 // 托管静态网页
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 原有的 TikTok 用户查询 API
+// TikTok 用户查询 API
 app.get('/api/tiktok-user', async (req, res) => {
     const username = req.query.username;
     if (!username) {
@@ -69,53 +69,58 @@ app.get('/api/tiktok-user', async (req, res) => {
 });
 
 // ==========================================
-// TikTok 直播实时监控与 WebSocket 广播
+// WebSocket 动态直播间实时监控
 // ==========================================
-const targetLiveUser = 'khaby.lame'; // 💡 你可以在这里更换成当前正在开播的主播 ID
-const tiktokLiveConnection = new WebcastPushConnection(targetLiveUser);
-
-tiktokLiveConnection.connect().then(state => {
-    console.log(`[直播监控] 成功连接到主播 @${targetLiveUser} 的直播间，Room ID: ${state.roomId}`);
-}).catch(err => {
-    console.log(`[直播监控] 连接失败（可能当前未开播）：`, err.message);
-});
-
-// 监听弹幕
-tiktokLiveConnection.on('chat', data => {
-    broadcast({
-        type: 'chat',
-        nickname: data.nickname,
-        comment: data.comment
-    });
-});
-
-// 监听礼物
-tiktokLiveConnection.on('gift', data => {
-    if (data.giftType === 1 && !data.repeatEnd) return;
-    broadcast({
-        type: 'gift',
-        nickname: data.nickname,
-        giftName: data.giftName,
-        count: data.repeatCount || 1
-    });
-});
-
-// 广播给所有连上网站的客户端
-function broadcast(data) {
-    const message = JSON.stringify(data);
-    wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-        }
-    });
-}
-
 wss.on('connection', (ws) => {
     console.log('[WebSocket] 新客户端连入实时监控');
-    ws.send(JSON.stringify({ type: 'system', comment: '已成功连入直播实时数据流' }));
+    ws.send(JSON.stringify({ type: 'system', comment: '已连接，请输入要监控的主播ID' }));
+
+    let currentLiveConnection = null;
+
+    ws.on('message', (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.type === 'setTarget' && data.username) {
+                const targetLiveUser = data.username.replace(/^@/, '').trim();
+                console.log(`[直播监控] 客户端请求切换监控主播: @${targetLiveUser}`);
+
+                // 如果之前有连接，先断开
+                if (currentLiveConnection) {
+                    try { currentLiveConnection.disconnect(); } catch(e) {}
+                }
+
+                currentLiveConnection = new WebcastPushConnection(targetLiveUser);
+
+                currentLiveConnection.connect().then(state => {
+                    ws.send(JSON.stringify({ type: 'system', comment: `成功连接到 @${targetLiveUser} 直播间` }));
+                }).catch(err => {
+                    ws.send(JSON.stringify({ type: 'system', comment: `连接 @${targetLiveUser} 失败（可能未开播）` }));
+                });
+
+                currentLiveConnection.on('chat', chatData => {
+                    ws.send(JSON.stringify({
+                        type: 'chat',
+                        nickname: chatData.nickname,
+                        comment: chatData.comment
+                    }));
+                });
+
+                currentLiveConnection.on('gift', giftData => {
+                    if (giftData.giftType === 1 && !giftData.repeatEnd) return;
+                    ws.send(JSON.stringify({
+                        type: 'gift',
+                        nickname: giftData.nickname,
+                        giftName: giftData.giftName,
+                        count: giftData.repeatCount || 1
+                    }));
+                });
+            }
+        } catch (e) {
+            console.error('解析客户端消息失败', e);
+        }
+    });
 });
 
-// 注意：整合了 WebSocket 之后，必须使用 server.listen 启动服务
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
