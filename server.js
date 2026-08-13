@@ -91,19 +91,22 @@ io.on('connection', (socket) => {
             socket.emit('liveData', { type: 'system', comment: `连接失败: ${err.message}` });
         });
 
-        // 兼容不同的事件监听写法，确保 chat 和 gift 都能正常推给客户端
         const handleChat = data => {
+            const avatarUrl = data.profilePictureUrl || data.userDetails?.profilePictureUrl || data.avatarThumb || '';
             socket.emit('chat', { 
                 nickname: data.uniqueId || data.nickname || data.user, 
-                comment: data.comment || data.message
+                comment: data.comment || data.message,
+                avatar: avatarUrl
             });
         };
 
         const handleGift = data => {
+            const avatarUrl = data.profilePictureUrl || data.userDetails?.profilePictureUrl || data.avatarThumb || '';
             socket.emit('gift', { 
                 nickname: data.uniqueId || data.nickname || data.user, 
                 giftName: data.giftName || data.extendedGiftInfo?.name || data.gift || 'Gift', 
-                count: data.repeatCount || data.diamondCount || data.count || 1 
+                count: data.repeatCount || data.diamondCount || data.count || 1,
+                avatar: avatarUrl
             });
         };
 
