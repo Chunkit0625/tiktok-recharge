@@ -70,35 +70,75 @@ io.on('connection', (socket) => {
     let tiktokConnection = null;
 
     socket.on('setTarget', (username) => {
-        const cleanTarget = username.replace(/^@/, '').trim();
-        if (!cleanTarget) return;
+        const cleanTarget = username ? username.replace(/^@/, '').trim() : '';
+        if (!cleanTarget) {
+            if (tiktokConnection) {
+                try { tiktokConnection.disconnect(); } catch (e) {}
+                tiktokConnection = null;
+            }
+            return;
+        }
+
         if (tiktokConnection) {
             try { tiktokConnection.disconnect(); } catch (e) {}
         }
 
-        tiktokConnection = new TikTokConnection(cleanTarget, { processInitialData: false });
+        tiktokConnection = new TikTokConnection(cleanTarget, { 
+            processInitialData: true,
+            enableExtendedGiftInfo: true,
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+                }
+            }
+        });
         
         tiktokConnection.connect().then(state => {
+            console.log(`成功连接到直播间: @${cleanTarget}, Room ID: ${state.roomId}`);
             socket.emit('liveData', { type: 'system', comment: `已连接到直播间 @${cleanTarget}` });
         }).catch(err => {
+            console.error(`连接直播间 @${cleanTarget} 失败:`, err.message);
             socket.emit('liveData', { type: 'system', comment: `连接失败: ${err.message}` });
         });
 
+        // 提取更详尽的弹幕用户信息（头像、昵称、唯一ID）
         tiktokConnection.on('chat', data => {
+            const avatarUrl = data.profilePictureUrl || data.userDetails?.profilePictureUrl || data.avatarUrl || '';
+            const nickname = data.nickname || data.userDetails?.nickname || data.uniqueId || '观众';
+            const uniqueId = data.uniqueId || data.userDetails?.uniqueId || '';
+
             socket.emit('liveData', { 
                 type: 'chat', 
-                nickname: data.uniqueId || data.nickname, 
-                comment: data.comment 
+                nickname: nickname, 
+                uniqueId: uniqueId,
+                comment: data.comment || '',
+                avatar: avatarUrl
             });
         });
 
+        // 提取更详尽的礼物信息、数量及发送者头像
         tiktokConnection.on('gift', data => {
+            // 如果礼物在连击中（repeatEnd 为 false），可以根据需要过滤或展示
+            if (data.giftType === 1 && !data.repeatEnd) {
+                // 连击中的中间状态可按需处理
+            }
+            
+            const avatarUrl = data.profilePictureUrl || data.userDetails?.profilePictureUrl || '';
+            const nickname = data.nickname || data.userDetails?.nickname || data.uniqueId || '观众';
+            const giftName = data.giftName || data.extendedGiftInfo?.name || data.name || 'Gift';
+            const giftCount = data.repeatCount || data.diamondCount || data.count || 1;
+
             socket.emit('liveData', { 
                 type: 'gift', 
-                nickname: data.uniqueId || data.nickname, 
-                giftName: data.giftName || data.extendedGiftInfo?.name || 'Gift', 
-                count: data.repeatCount || data.diamondCount || 1 
+                nickname: nickname, 
+                giftName: giftName, 
+                count: giftCount,
+                avatar: avatarUrl
             });
+        });
+        
+        tiktokConnection.on('error', err => {
+            console.error('[TikTok 错误]:', err.message || err);
         });
     });
 
