@@ -72,7 +72,6 @@ io.on('connection', (socket) => {
     socket.on('setTarget', (username) => {
         const cleanTarget = username ? username.replace(/^@/, '').trim() : '';
         if (!cleanTarget) {
-            console.log('未指定监控目标（留空），停止当前监控');
             if (tiktokConnection) {
                 try { tiktokConnection.disconnect(); } catch (e) {}
                 tiktokConnection = null;
@@ -84,33 +83,27 @@ io.on('connection', (socket) => {
             try { tiktokConnection.disconnect(); } catch (e) {}
         }
 
-        console.log(`正在尝试连接直播间: @${cleanTarget}`);
         tiktokConnection = new TikTokConnection(cleanTarget, { processInitialData: false });
         
         tiktokConnection.connect().then(state => {
-            console.log(`成功连接到直播间: @${cleanTarget}`);
             socket.emit('liveData', { type: 'system', comment: `已连接到直播间 @${cleanTarget}` });
         }).catch(err => {
-            console.log(`连接直播间 @${cleanTarget} 失败:`, err.message);
             socket.emit('liveData', { type: 'system', comment: `连接失败: ${err.message}` });
         });
 
+        // 兼容不同的事件监听写法，确保 chat 和 gift 都能正常推给客户端
         const handleChat = data => {
-            const avatarUrl = data.profilePictureUrl || data.userDetails?.profilePictureUrl || data.avatarThumb || '';
             socket.emit('chat', { 
                 nickname: data.uniqueId || data.nickname || data.user, 
-                comment: data.comment || data.message,
-                avatar: avatarUrl
+                comment: data.comment || data.message
             });
         };
 
         const handleGift = data => {
-            const avatarUrl = data.profilePictureUrl || data.userDetails?.profilePictureUrl || data.avatarThumb || '';
             socket.emit('gift', { 
                 nickname: data.uniqueId || data.nickname || data.user, 
                 giftName: data.giftName || data.extendedGiftInfo?.name || data.gift || 'Gift', 
-                count: data.repeatCount || data.diamondCount || data.count || 1,
-                avatar: avatarUrl
+                count: data.repeatCount || data.diamondCount || data.count || 1 
             });
         };
 
