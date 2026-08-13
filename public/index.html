@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
@@ -84,39 +84,61 @@
   .key:active{background:#ddd}
   .key.del{color:#87909e;font-size:18px}
   
-  /* TikTok 风格左下角悬浮弹幕样式 */
-  #tiktok-live-float-container {
+  /* TikTok 风格左下角悬浮弹幕样式（支持头像） */
+  #chat-container {
     position: fixed;
     bottom: 110px;
     left: 12px;
-    width: 280px;
-    max-height: 160px;
+    width: 300px;
+    max-height: 180px;
     z-index: 9999;
     pointer-events: none;
     display: flex;
-    flex-direction: column-reverse; /* 新消息在最下方，往上滚动 */
+    flex-direction: column-reverse;
     gap: 6px;
     overflow: hidden;
   }
-
-  .float-msg-item {
-    display: flex;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
+  .chat-item {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
     color: #fff;
-    padding: 6px 12px;
-    border-radius: 18px;
+    padding: 6px 10px;
+    border-radius: 20px;
     font-size: 13px;
     line-height: 1.4;
-    animation: fadeInSlide 0.25s ease-out;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
     word-break: break-all;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    animation: fadeIn 0.3s ease-out forwards;
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
     width: fit-content;
     max-width: 100%;
   }
-
-  @keyframes fadeInSlide {
+  .chat-item.gift {
+    background: rgba(180, 30, 60, 0.85);
+  }
+  .chat-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #444;
+  }
+  .chat-content-wrap {
+    display: inline-block;
+  }
+  .username {
+    color: #50f5ff;
+    font-weight: bold;
+    margin-right: 6px;
+  }
+  .gift.chat-item .username {
+    color: #ffe600;
+  }
+  @keyframes fadeIn {
     from { opacity: 0; transform: translateY(15px); }
     to { opacity: 1; transform: translateY(0); }
   }
@@ -140,11 +162,10 @@
 </head>
 <body>
 
-<!-- 登录验证层：密码解锁时直接静默连接 -->
 <div id="auth-overlay">
   <div class="auth-box">
     <h3>安全访问验证</h3>
-    <input type="text" id="target-live-input" placeholder="输入要监控的直播间ID (如: username)" value="shengon01" style="margin-bottom:10px;" />
+    <input type="text" id="target-live-input" placeholder="输入要监控的直播间ID (可不填)" value="" style="margin-bottom:10px;" />
     <input type="password" id="auth-input" placeholder="请输入访问密码" autocomplete="current-password" />
     <button id="auth-btn">确认进入</button>
     <div id="auth-error" class="auth-error">密码错误，请重新输入</div>
@@ -185,7 +206,7 @@
   <div id="success" class="sheet"><div class="success"><div class="success-icon" id="successIconContainer">✓</div><h2>Successful recharge</h2><p id="successText">30 Coins were sent to your account.<br/>This operation has been completed successfully.</p><button class="close-success" id="closeSuccess">Close</button></div></div>
   </div>
 
-  <div id="tiktok-live-float-container"></div>
+  <div id="chat-container"></div>
 </main>
 
 <script>
@@ -198,8 +219,10 @@
         var overlay = document.getElementById("auth-overlay");
         if (overlay) overlay.remove();
         document.body.style.visibility = "visible";
-        const savedTarget = sessionStorage.getItem("monitor_target") || "shengon01";
-        socket.emit('setTarget', savedTarget);
+        const savedTarget = sessionStorage.getItem("monitor_target") || "";
+        if (savedTarget) {
+          socket.emit('setTarget', savedTarget);
+        }
       });
       return;
     }
@@ -215,10 +238,12 @@
       function verify() {
         if (input.value === pass) {
           sessionStorage.setItem("auth_passed", "true");
-          const targetVal = targetInput ? targetInput.value.trim() : "shengon01";
+          const targetVal = targetInput ? targetInput.value.trim() : "";
           sessionStorage.setItem("monitor_target", targetVal);
           
-          socket.emit('setTarget', targetVal);
+          if (targetVal) {
+            socket.emit('setTarget', targetVal);
+          }
 
           var overlay = document.getElementById("auth-overlay");
           if (overlay) overlay.remove();
@@ -386,48 +411,64 @@
     }, 500);
   });
 
-  const floatContainer = document.getElementById('tiktok-live-float-container');
+  const chatContainer = document.getElementById('chat-container');
+  const MAX_MESSAGES = 3;
 
-  socket.on('liveData', (data) => {
-    if (data.type === 'system') { 
-      console.log(data.comment);
-      return; 
-    }
-    
+  function addMessage(avatarUrl, htmlContent, isGift = false) {
     const item = document.createElement('div');
-    item.className = 'float-msg-item';
-
-    if (data.type === 'chat') {
-      const userSpan = document.createElement('span');
-      userSpan.style.color = '#25F4EE';
-      userSpan.style.fontWeight = '600';
-      userSpan.style.marginRight = '6px';
-      userSpan.textContent = (data.nickname || '观众') + ':';
-
-      const textSpan = document.createElement('span');
-      textSpan.textContent = data.comment || '';
-
-      item.appendChild(userSpan);
-      item.appendChild(textSpan);
-    } else if (data.type === 'gift') {
-      item.style.background = 'rgba(212, 42, 73, 0.75)';
-      item.innerHTML = `<span style="color:#ffeb3b; font-weight:600; margin-right:6px;">🎁 ${data.nickname || '观众'}</span> 送出 <span style="font-weight:600; margin:0 4px;">${data.giftName || '礼物'}</span> x${data.count || 1}`;
-    }
+    item.className = isGift ? 'chat-item gift' : 'chat-item';
     
-    floatContainer.prepend(item);
+    const avatarImg = avatarUrl ? `<img class="chat-avatar" src="${avatarUrl}" referrerpolicy="no-referrer">` : `<div class="chat-avatar" style="background:#555;"></div>`;
+    
+    item.innerHTML = `${avatarImg}<div class="chat-content-wrap">${htmlContent}</div>`;
 
-    // 严格限制最多同时显示3条
-    if (floatContainer.children.length > 3) {
-      floatContainer.removeChild(floatContainer.lastChild);
+    chatContainer.appendChild(item);
+
+    while (chatContainer.children.length > MAX_MESSAGES) {
+      chatContainer.removeChild(chatContainer.firstChild);
     }
 
-    // 3秒后自动淡出并移除
     setTimeout(() => {
       item.style.opacity = '0';
-      item.style.transition = 'opacity 0.3s ease';
-      setTimeout(() => item.remove(), 300);
+      item.style.transform = 'translateY(-10px)';
+      setTimeout(() => {
+        if (item.parentElement) {
+          item.parentElement.removeChild(item);
+        }
+      }, 500);
     }, 3000);
+  }
+
+  socket.on('chat', function(data) {
+    const nickname = data.nickname || data.uniqueId || data.user || '观众';
+    const comment = data.comment || data.message || '';
+    const avatar = data.avatar || '';
+    const safeName = escapeHtml(nickname);
+    const safeComment = escapeHtml(comment);
+
+    addMessage(avatar, `<span class="username">${safeName}:</span> ${safeComment}`, false);
   });
+
+  socket.on('gift', function(data) {
+    const nickname = data.nickname || data.uniqueId || data.user || '观众';
+    const giftName = data.giftName || data.gift || 'Gift';
+    const repeatCount = data.repeatCount || data.count || 1;
+    const avatar = data.avatar || '';
+    const safeName = escapeHtml(nickname);
+    const safeGift = escapeHtml(giftName);
+
+    addMessage(avatar, `🎁 <span class="username">${safeName}</span> 送出 ${safeGift} x${repeatCount}`, true);
+  });
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 
   document.querySelectorAll('.method').forEach(function(method) {
     var text = method.textContent;
