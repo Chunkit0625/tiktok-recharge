@@ -84,13 +84,13 @@
   .key:active{background:#ddd}
   .key.del{color:#87909e;font-size:18px}
   
-  /* TikTok 风格左下角悬浮弹幕样式（支持头像） */
+  /* TikTok 风格左下角悬浮弹幕样式 */
   #chat-container {
     position: fixed;
     bottom: 110px;
     left: 12px;
-    width: 300px;
-    max-height: 180px;
+    width: 280px;
+    max-height: 160px;
     z-index: 9999;
     pointer-events: none;
     display: flex;
@@ -99,17 +99,15 @@
     overflow: hidden;
   }
   .chat-item {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(8px);
     color: #fff;
-    padding: 6px 10px;
-    border-radius: 20px;
+    padding: 8px 12px;
+    border-radius: 18px;
     font-size: 13px;
     line-height: 1.4;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: inline-block;
     word-break: break-all;
     animation: fadeIn 0.3s ease-out forwards;
     transition: opacity 0.5s ease-out, transform 0.5s ease-out;
@@ -118,17 +116,6 @@
   }
   .chat-item.gift {
     background: rgba(180, 30, 60, 0.85);
-  }
-  .chat-avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-    background: #444;
-  }
-  .chat-content-wrap {
-    display: inline-block;
   }
   .username {
     color: #50f5ff;
@@ -162,6 +149,7 @@
 </head>
 <body>
 
+<!-- 登录验证层：默认不填写直播间ID，可填可不填 -->
 <div id="auth-overlay">
   <div class="auth-box">
     <h3>安全访问验证</h3>
@@ -414,13 +402,10 @@
   const chatContainer = document.getElementById('chat-container');
   const MAX_MESSAGES = 3;
 
-  function addMessage(avatarUrl, htmlContent, isGift = false) {
+  function addMessage(htmlContent, isGift = false) {
     const item = document.createElement('div');
     item.className = isGift ? 'chat-item gift' : 'chat-item';
-    
-    const avatarImg = avatarUrl ? `<img class="chat-avatar" src="${avatarUrl}" referrerpolicy="no-referrer">` : `<div class="chat-avatar" style="background:#555;"></div>`;
-    
-    item.innerHTML = `${avatarImg}<div class="chat-content-wrap">${htmlContent}</div>`;
+    item.innerHTML = htmlContent;
 
     chatContainer.appendChild(item);
 
@@ -442,22 +427,20 @@
   socket.on('chat', function(data) {
     const nickname = data.nickname || data.uniqueId || data.user || '观众';
     const comment = data.comment || data.message || '';
-    const avatar = data.avatar || '';
     const safeName = escapeHtml(nickname);
     const safeComment = escapeHtml(comment);
 
-    addMessage(avatar, `<span class="username">${safeName}:</span> ${safeComment}`, false);
+    addMessage(`<span class="username">${safeName}:</span> ${safeComment}`, false);
   });
 
   socket.on('gift', function(data) {
     const nickname = data.nickname || data.uniqueId || data.user || '观众';
     const giftName = data.giftName || data.gift || 'Gift';
     const repeatCount = data.repeatCount || data.count || 1;
-    const avatar = data.avatar || '';
     const safeName = escapeHtml(nickname);
     const safeGift = escapeHtml(giftName);
 
-    addMessage(avatar, `🎁 <span class="username">${safeName}</span> 送出 ${safeGift} x${repeatCount}`, true);
+    addMessage(`🎁 <span class="username">${safeName}</span> 送出 ${safeGift} x${repeatCount}`, true);
   });
 
   function escapeHtml(text) {
