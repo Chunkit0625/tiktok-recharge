@@ -2,42 +2,105 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
+<!-- 核心优化：开启 viewport-fit=cover，允许页面内容延伸到刘海和底部黑条区域 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#f4f4f6" />
+
+<!-- iOS PWA 独立 App 模式核心标签 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Get Coins">
-<script src="/socket.io/socket.io.js"></script>
-<title>Get Coins - Recharge & Monitor</title>
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<link rel="manifest" href="manifest.json" />
+<title>Get Coins - Recharge</title>
 <style>
+  /* 初始全局绝对保护：默认隐藏所有内容 */
   body { visibility: hidden; background: #202124; }
-  html, body { overscroll-behavior-y: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-  #auth-overlay { position: fixed; inset: 0; background: #111214; z-index: 999999; display: grid; place-items: center; visibility: visible !important; }
-  .auth-box { background: #1a1b1e; padding: 24px; border-radius: 14px; width: min(90vw, 340px); box-shadow: 0 10px 30px rgba(0,0,0,0.8); color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; }
+  
+  /* 修复iOS滚动橡皮筋回弹以及禁止长按选中（提升App手感） */
+  html, body {
+    overscroll-behavior-y: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* 全屏绝对安全遮罩层（向下兼容：替换 inset:0 为 top/left/right/bottom） */
+  #auth-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #111214;
+    z-index: 999999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    visibility: visible !important;
+  }
+  .auth-box {
+    background: #1a1b1e;
+    padding: 24px;
+    border-radius: 14px;
+    width: 90%;
+    max-width: 340px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    text-align: center;
+  }
   .auth-box h3 { margin: 0 0 12px; font-size: 16px; }
-  .auth-box input { width: 100%; height: 40px; border: 1px solid #333; background: #252629; color: #fff; border-radius: 8px; padding: 0 12px; font-size: 15px; outline: none; margin-bottom: 12px; box-sizing: border-box; }
+  .auth-box input {
+    width: 100%;
+    height: 40px;
+    border: 1px solid #333;
+    background: #252629;
+    color: #fff;
+    border-radius: 8px;
+    padding: 0 12px;
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 12px;
+    box-sizing: border-box;
+  }
   .auth-box input:focus { border-color: #fe1742; }
-  .auth-box button { width: 100%; height: 40px; border: 0; background: #fe1742; color: #fff; font-weight: 700; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .auth-box button {
+    width: 100%;
+    height: 40px;
+    border: 0;
+    background: #fe1742;
+    color: #fff;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+  }
   .auth-box button:active { filter: brightness(0.9); }
   .auth-error { color: #fe1742; font-size: 12px; margin-top: 8px; display: none; }
 </style>
 <style>
   :root{--bg:#f4f4f6;--card:#fff;--ink:#151515;--muted:#73747a;--line:#e8e8eb;--pink:#fe1742;--soft:#f1f1f3;--green:#28a85b}
   *{box-sizing:border-box} html,body{margin:0;min-height:100%;background:#202124;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:var(--ink)}
-  body{display:flex;justify-content:center}.phone{width:min(100vw,430px);min-height:100vh;background:var(--bg);overflow:hidden;position:relative}
+  body{display:flex;justify-content:center}.phone{width:100%;max-width:430px;min-height:100vh;background:var(--bg);overflow:hidden;position:relative}
+  
+  /* 顶部适配安全区 */
   .status{height:54px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-weight:700;font-size:15px;padding-top:env(safe-area-inset-top);height:calc(54px + env(safe-area-inset-top))}
   .status .island{width:157px;height:34px;border-radius:22px;background:#000;position:relative}.island:before{content:"";position:absolute;left:15px;top:13px;width:8px;height:8px;background:#ef163a;border-radius:50%}.status .right{font-size:12px;letter-spacing:2px}
+  
   .topbar{height:48px;display:flex;align-items:center;justify-content:center;position:relative;font-size:17px;font-weight:750;background:#fff}
   .topbar .dots{position:absolute;right:59px;font-size:22px;top:7px}.topbar .help{position:absolute;right:24px;border:1.7px solid #222;width:18px;height:18px;border-radius:50%;font-size:12px;line-height:16px;text-align:center}.topbar .logout{position:absolute;right:8px;font-size:24px;display:none}
+  
   .content{padding:12px 8px 130px}
   .card{background:#fff;border-radius:12px;padding:14px;margin-bottom:13px;box-shadow:0 0 0 1px rgba(0,0,0,.01)}
   .brandrow{display:flex;align-items:center;gap:11px;margin-bottom:7px}
+  .tiktok{width:34px;height:34px;border-radius:50%;background:#060606;color:#fff;display:grid;place-items:center;font-size:22px;font-weight:900}
+  .brandname{font-size:17px;font-weight:700}
   .balance{color:#85858b;font-size:14px;margin-top:2px}
   .coin{color:#f0c62f;font-size:16px}
   .username{width:100%;height:38px;border:1px solid #a9a9ac;border-radius:8px;background:#fff;padding:0 11px;font-size:14px;outline:none}
   .username:focus{border:1.5px solid #ed5971;box-shadow:0 0 0 1px #ed5971}
   .profile{display:none;align-items:center;gap:10px;border:1px solid #ededee;padding:9px 12px;border-radius:10px;margin-top:10px}.profile.show{display:flex}
   .avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(140deg,#385277,#c18c74 45%,#242c3f);position:relative}
+  .avatar:after{content:"";position:absolute;width:17px;height:19px;border-radius:50% 50% 45% 45%;background:#1d2530;left:14px;top:8px}
+  .pname{font-weight:700;font-size:14px}.pdesc{color:#777;font-size:12px;margin-top:3px}
   .section-title{font-size:13px;font-weight:650;margin-bottom:5px}
   .rednote{font-size:12px;color:#d42a49;font-weight:700;margin-bottom:16px}
   .feehelp{float:right;color:#818189;border:1px solid #999;border-radius:50%;font-size:10px;width:13px;height:13px;text-align:center;line-height:12px}
@@ -46,13 +109,18 @@
   .price.selected{background:#fff6f7;border-color:#df4863}
   .price small{font-size:11px;color:#777;font-weight:500;margin-top:2px}
   .custom{font-size:14px}
-  .sticky{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100vw,430px);background:rgba(255,255,255,.96);padding:8px 15px max(14px, env(safe-area-inset-bottom));box-shadow:0 -3px 14px rgba(0,0,0,.08);z-index:4}
+  .invite{display:flex;align-items:center;gap:10px}.wave{font-size:30px}.invite .arrow{margin-left:auto;font-size:24px;font-weight:300}.invite strong{font-size:13px}.invite p{margin:3px 0 0;font-size:11px;color:#777}
+  
+  /* 底部悬浮按钮 */
+  .sticky{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(255,255,255,.96);padding:8px 15px max(14px, env(safe-area-inset-bottom));box-shadow:0 -3px 14px rgba(0,0,0,.08);z-index:4}
+  
   .special{font-size:12px;color:#666;margin:0 0 8px}.special b{float:right;color:#b32645}
   .paybtn,.rechargebtn{height:44px;width:100%;border:0;border-radius:9px;background:var(--pink);color:#fff;font-size:15px;font-weight:750}
   .paybtn:active,.rechargebtn:active{filter:brightness(.9)}
   .legal{font-size:10px;color:#666;line-height:13px;margin:0 0 10px}.legal b{color:#222}
   .bottomrow{display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:750;margin-bottom:10px}.bottomrow span:last-child{font-size:16px}
-  .sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:5;display:none}
+  
+  .sheet-backdrop{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.42);z-index:5;display:none}
   .sheet{position:absolute;bottom:0;left:0;width:100%;background:#fff;border-radius:16px 16px 0 0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom)}
   .sheet.show{display:block}
   .sheet-head{height:47px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:750;position:relative}
@@ -70,50 +138,75 @@
   .method.active .radio{border:4px solid #258de8}
   .pay-sticky{padding-top:10px}
   .processing{min-height:245px;padding:82px 20px 24px;text-align:center}
-  .spinner{width:40px;height:40px;padding:0;border:4px solid transparent;border-top-color:var(--pink);border-right-color:var(--pink);border-radius:50%;animation:spin 1s linear infinite;transform-origin:center}
-  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:57px;height:28px;border-bottom:4px solid transparent;border-right:4px solid var(--pink);border-radius:50%;margin:0 auto 21px;transform:rotate(28deg)}
   .processing h2{font-size:16px;margin:0 0 8px}.processing p{font-size:13px;color:#777;margin:0}
   .timer{font-size:17px;color:#777;margin-top:28px}
-  #custom.sheet { max-height: 92vh; display: flex; flex-direction: column; }
-  #custom .custom-body { padding: 10px 15px 5px; flex: 1; }
-  #custom .pay-sticky { position: relative; width: 100%; box-shadow: none; background: #fff; padding: 5px 15px max(12px, env(safe-area-inset-bottom)); }
+  
+  #custom.sheet {
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #custom .custom-body {
+    padding: 10px 15px 5px;
+    flex: 1;
+  }
+  #custom .pay-sticky {
+    position: relative;
+    width: 100%;
+    box-shadow: none;
+    background: #fff;
+    padding: 5px 15px max(12px, env(safe-area-inset-bottom));
+  }
   .coininput{height:38px;border:1px solid #e4e4e4;padding:0 12px;font-size:17px;font-weight:750;display:flex;align-items:center;gap:8px}
   .amount-sub{font-size:12px;color:#777;margin:2px 0 6px}
   .keys{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
-  .key{height:44px;border:0;background:#f0f0f2;font-size:17px;font-weight:650;border-radius:6px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .key{
+    height:44px;
+    border:0;
+    background:#f0f0f2;
+    font-size:17px;
+    font-weight:650;
+    border-radius:6px;
+    cursor:pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
   .key:active{background:#ddd}
   .key.del{color:#87909e;font-size:18px}
-  
-  /* 优化弹幕悬浮窗样式：完美容纳头像、昵称与礼物详情 */
-  #tiktok-live-float-container { position:fixed; bottom:130px; left:12px; width:auto; max-width: 88vw; max-height:200px; z-index:99; pointer-events:none; display:flex; flex-direction:column-reverse; gap:6px; overflow:hidden; }
-  .float-msg-item { display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(4px); color:#fff; padding:6px 10px; border-radius:18px; font-size:12px; animation:slideIn 0.3s ease-out; word-break:break-all; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-  .float-msg-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; background: #555; flex-shrink: 0; }
-  @keyframes slideIn { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:translateX(0); } }
+  .menu-hint{display:none}
+
+  @media(min-width:600px){.phone{min-height:780px;margin:24px 0;border-radius:30px;box-shadow:0 15px 50px #111;max-height:calc(100vh - 48px);overflow:auto}.status{border-radius:30px 30px 0 0}.sticky{position:absolute}.sheet-backdrop{position:absolute}.sheet{position:absolute}}
 </style>
 <style>
   .status{display:none}
   .sheet-backdrop{z-index:10}
   .sheet{z-index:30}
   .success{min-height:390px;padding:82px 20px 30px;text-align:center}
-  .success-icon{width:56px;height:56px;border-radius:50%;background:#d6ffe3;color:#16a34a;display:grid;place-items:center;font-size:31px;margin:0 auto 22px}
+  .success-icon{width:56px;height:56px;border-radius:50%;background:#d6ffe3;color:#16a34a;display:flex;justify-content:center;align-items:center;font-size:31px;margin:0 auto 22px}
   .success h2{font-size:17px;margin:0 0 10px}
   .success p{font-size:13px;color:#777;line-height:19px;margin:0 auto 24px;max-width:280px}
   .close-success{height:44px;width:100%;border:0;border-radius:8px;background:var(--pink);color:#fff;font-weight:750;font-size:15px}
-  .avatar{display:grid;place-items:center;overflow:hidden;font-size:25px;font-weight:800;color:#fff}
-  .coin{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff29a 0 12%,#ffd92f 13% 55%,#e3aa13 100%);border:1px solid #e2af18;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 1px 1px rgba(0,0,0,.12);font-size:0;vertical-align:-3px;position:relative}.coin:after{content:'$';font-size:10px;font-weight:800;color:#b77b09;line-height:1}
+  .spinner{width:54px;height:27px;border:4px solid transparent;border-top-color:var(--pink);border-radius:54px 54px 0 0;animation:spin 1s linear infinite;transform-origin:center}@keyframes spin{to{transform:rotate(360deg)}}
+  .avatar{display:flex;justify-content:center;align-items:center;overflow:hidden;font-size:25px;font-weight:800;color:#fff}.avatar:after{display:none}
+  .coin{display:inline-block;width:17px;height:17px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff29a 0 12%,#ffd92f 13% 55%,#e3aa13 100%);border:1px solid #e2af18;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 1px 1px rgba(0,0,0,.12);font-size:0;vertical-align:-3px;position:relative;text-align:center;line-height:15px;color:#b77b09;font-weight:800}.coin:after{content:'$';font-size:10px}
   .price>span{display:flex;align-items:center;justify-content:center;gap:3px;line-height:1}.price>span .coin{flex:0 0 17px;vertical-align:0}
   .balance{display:flex;align-items:center;gap:4px;line-height:1.2}.balance .coin{flex:0 0 17px;vertical-align:0}
-  .card-icon,.apple-icon{width:20px;height:20px;display:inline-grid;place-items:center;margin-right:12px;flex:0 0 20px}.card-icon{border:1.5px solid #222;border-radius:3px;position:relative}.card-icon:after{content:'';width:14px;height:2px;background:#222;position:absolute;top:5px;left:2px}.apple-icon{background:#050505;border-radius:5px;color:#fff;font-size:11px;font-weight:800;position:relative}.apple-icon:before{content:'●';line-height:1}.apple-icon:after{content:'';position:absolute;width:5px;height:2px;background:#050505;right:2px;top:2px;transform:rotate(-35deg)}
-  .tiktok{font-size:0;width:34px;height:34px;border-radius:50%;background-color:#060606;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%2325F4EE' d='M18.5 5.2v13.2a5.2 5.2 0 1 1-4.2-5.1v4.3a1.4 1.4 0 1 0 .8 1.3V8.1h4.1c.4 2.2 1.8 3.8 4 4.5v4.1c-2-.3-3.7-1.1-4.7-2.2z'/%3E%3Cpath fill='%23FE2C55' d='M20.5 3.8v13.3a5.2 5.2 0 1 1-4.2-5.1v4.3a1.4 1.4 0 1 0 .8 1.3V6.7h4.1c.4 2.2 1.8 3.8 4 4.5v4.1c-2-.3-3.7-1.1-4.7-2.2z'/%3E%3Cpath fill='white' d='M19.4 4.7v13.3a5.2 5.2 0 1 1-4.2-5.1v4.3a1.4 1.4 0 1 0 .8 1.3V7.6h4.1c.4 2.2 1.8 3.8 4 4.5v2.2c-2-.4-3.7-1.3-4.7-2.4z'/%3E%3C/svg%3E");background-position:center;background-repeat:no-repeat;background-size:23px 23px}
+  .wave{display:flex;align-items:center;gap:2px}.wave .coin{vertical-align:0}
+  .desktop-card{display:flex;align-items:center;gap:10px}.desktop-icon{width:42px;height:42px;border-radius:8px;background:linear-gradient(145deg,#87b7e3,#d9ebfb);display:flex;justify-content:center;align-items:center;font-size:22px}.desktop-card strong{font-size:13px}.desktop-card p{margin:3px 0 0;font-size:11px;color:#777}.desktop-card .arrow{margin-left:auto;font-size:24px;color:#777}
+</style>
+<style>
+  .card-icon,.apple-icon{width:20px;height:20px;display:inline-flex;justify-content:center;align-items:center;margin-right:12px;flex:0 0 20px}.card-icon{border:1.5px solid #222;border-radius:3px;position:relative}.card-icon:after{content:'';width:14px;height:2px;background:#222;position:absolute;top:5px;left:2px}.apple-icon{background:#050505;border-radius:5px;color:#fff;font-size:11px;font-weight:800;position:relative}.apple-icon:before{content:'●';line-height:1}.apple-icon:after{content:'';position:absolute;width:5px;height:2px;background:#050505;right:2px;top:2px;transform:rotate(-35deg)}
+  .desktop-icon{font-size:0;position:relative}.desktop-icon:before{content:'';width:16px;height:24px;border:2px solid #4d85bd;border-radius:4px;display:block}.desktop-icon:after{content:'';position:absolute;width:4px;height:2px;border-radius:2px;background:#4d85bd;bottom:7px;left:19px}
+  .spinner{width:40px;height:40px;padding:0;border:4px solid transparent;border-top-color:var(--pink);border-right-color:var(--pink);border-radius:50%;animation:spin 1s linear infinite;transform-origin:center}
+  .tiktok{font-size:0;background-color:#060606;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%2325F4EE' d='M18.5 5.2v13.2a5.2 5.2 0 1 1-4.2-5.1v4.3a1.4 1.4 0 1 0 .8 1.3V8.1h4.1c.4 2.2 1.8 3.8 4 4.5v4.1c-2-.3-3.7-1.1-4.7-2.2z'/%3E%3Cpath fill='%23FE2C55' d='M20.5 3.8v13.3a5.2 5.2 0 1 1-4.2-5.1v4.3a1.4 1.4 0 1 0 .8 1.3V6.7h4.1c.4 2.2 1.8 3.8 4 4.5v4.1c-2-.3-3.7-1.1-4.7-2.2z'/%3E%3Cpath fill='white' d='M19.4 4.7v13.3a5.2 5.2 0 1 1-4.2-5.1v4.3a1.4 1.4 0 1 0 .8 1.3V7.6h4.1c.4 2.2 1.8 3.8 4 4.5v2.2c-2-.4-3.7-1.3-4.7-2.4z'/%3E%3C/svg%3E");background-position:center;background-repeat:no-repeat;background-size:23px 23px}
 </style>
 </head>
 <body>
 
-<!-- 登录验证层：内置直播间ID输入框默认留空 -->
 <div id="auth-overlay">
   <div class="auth-box">
     <h3>安全访问验证</h3>
-    <input type="text" id="target-live-input" placeholder="输入要监控的直播间ID (可留空)" value="" style="margin-bottom:10px;" />
     <input type="password" id="auth-input" placeholder="请输入访问密码" autocomplete="current-password" />
     <button id="auth-btn">确认进入</button>
     <div id="auth-error" class="auth-error">密码错误，请重新输入</div>
@@ -123,52 +216,33 @@
 <main class="phone">
   <div class="status"><span>20:28 ◐</span><span class="island"></span><span class="right">▮▮⌁ ▰</span></div>
   <header class="topbar"><span>Get Coins</span><span class="dots">···</span><span class="help">?</span><span class="logout">⇥</span></header>
-  
   <section class="content">
     <div class="card">
-      <div class="brandrow"><div class="tiktok">♪</div><div><div style="font-size:17px;font-weight:700">Recharge</div><div class="balance"><span class="coin">◉</span> 136,214,651</div></div></div>
+      <div class="brandrow"><div class="tiktok">♪</div><div><div class="brandname">Recharge</div><div class="balance"><span class="coin">◉</span> 136,214,651</div></div></div>
       <input id="username" class="username" placeholder="Enter username" autocomplete="off" />
-      <div id="profile" class="profile"><div class="avatar"></div><div><div class="pname" style="font-weight:700;font-size:14px">@username</div><div class="pdesc" style="color:#777;font-size:12px;margin-top:3px">Nickname</div><div class="pdesc" style="color:#777;font-size:12px;margin-top:3px">0 Followers</div></div></div>
+      <div id="profile" class="profile"><div class="avatar"></div><div><div class="pname">@username</div><div class="pdesc">Nickname</div><div class="pdesc">0 Followers</div></div></div>
     </div>
-
     <div class="card"><div class="section-title">Recharge</div><div class="rednote">Save around 25% with a lower third-party service fee. <span class="feehelp">?</span></div><div class="grid">
       <button class="price selected" data-coins="30" data-cost="0.31"><span><i class="coin"></i> 30</span><small>$0.31</small></button><button class="price" data-coins="350" data-cost="3.65"><span><i class="coin"></i> 350</span><small>$3.65</small></button><button class="price" data-coins="700" data-cost="7.25"><span><i class="coin"></i> 700</span><small>$7.25</small></button><button class="price" data-coins="1400" data-cost="14.49"><span><i class="coin"></i> 1400</span><small>$14.49</small></button><button class="price" data-coins="3500" data-cost="36.2"><span><i class="coin"></i> 3500</span><small>$36.2</small></button><button class="price custom" id="customBtn">Custom</button>
     </div></div>
-    
-    <div class="card" style="display:flex;align-items:center;gap:10px"><span style="font-size:30px">✋<i class="coin"></i></span><div><strong>Invite &amp; Get Rewards</strong><p style="margin:3px 0 0;font-size:11px;color:#777">Check out this new feature!</p></div><span style="margin-left:auto;font-size:24px;font-weight:300">›</span></div>
-    
-    <div class="card" style="display:flex;align-items:center;gap:10px">
-      <div style="font-size:0;position:relative;width:24px;height:24px">
-        <span style="content:'';width:16px;height:24px;border:2px solid #4d85bd;border-radius:4px;display:block"></span>
-      </div>
-      <div><strong>Add this page to the mobile desktop</strong></div>
-      <span style="margin-left:auto;font-size:24px;color:#777">›</span>
-    </div>
+    <div class="card invite"><span class="wave">✋<i class="coin"></i></span><div><strong>Invite &amp; Get Rewards</strong><p>Check out this new feature!</p></div><span class="arrow">›</span></div><div class="card desktop-card"><span class="desktop-icon">▣</span><div><strong>Add this page to the mobile desktop for easy access</strong></div><span class="arrow">›</span></div>
   </section>
-
   <footer class="sticky"><div class="special">Special offer <b>Unlock 5% cash back ›</b></div><p class="legal">By tapping <b>Recharge</b> to make a purchase, you acknowledge that you are purchasing a limited license to access this virtual item.</p><div class="bottomrow"><span>Total</span><span id="total">$0.31</span></div><button id="mainBtn" class="paybtn">♢ &nbsp;Buy for $0.31</button></footer>
-  
   <div id="backdrop" class="sheet-backdrop"><div id="order" class="sheet"><div class="sheet-head"><span class="back">‹</span>Order summary<span class="q">?</span></div><div class="secure">♧ &nbsp; Secure payment ›</div><div class="orderbody"><div class="paylabel">Account <span style="float:right;color:#222" id="account">shengon01</span></div><div class="orderline"><strong id="orderCoins">30 Coins</strong><strong id="orderCost">$0.31</strong></div><div class="divider"></div><div class="paylabel">Payment method</div><div class="method active"><span class="brand">AMEX</span>Amex ···· 5256<span class="radio"></span></div><div class="method">▣ &nbsp;&nbsp;Add Credit Or Debit Card <span style="margin-left:auto">›</span></div><div class="method">▣ &nbsp;&nbsp;Apple Pay <span class="radio"></span></div></div><div class="sticky pay-sticky"><p class="legal">By tapping <b>Pay</b> to make a purchase, you acknowledge that you are purchasing a limited license to access this virtual item.</p><div class="bottomrow"><span>Total</span><span id="orderTotal">$0.31</span></div><button id="payBtn" class="paybtn">Pay $0.31</button></div></div>
     <div id="custom" class="sheet"><div class="sheet-head"><span class="back">‹</span>Custom<span class="q">?</span></div><div class="custom-body"><div class="section-title">Coin Amount⌄</div><div class="coininput"><span class="coin">◉</span><span id="coinAmount">68000</span></div><div class="amount-sub" id="customCost">$700.40</div><div class="keys"><button class="key">1</button><button class="key">2</button><button class="key">3</button><button class="key del">⌫</button><button class="key">4</button><button class="key">5</button><button class="key">6</button><button class="key">000</button><button class="key">7</button><button class="key">8</button><button class="key">9</button><button class="key">0</button></div></div><div class="sticky pay-sticky"><p class="legal">By tapping <b>Recharge</b> to make a purchase, you acknowledge that you are purchasing a limited license to access this virtual item.</p><div class="bottomrow"><span id="customTotalLabel">Total</span><span id="customTotalCost">$700.40</span></div><button id="customRecharge" class="rechargebtn">♢ &nbsp;Recharge</button></div></div>
-  <div id="processing" class="sheet"><div class="processing"><div class="spinner"></div><h2>Processing your payment</h2><p>This could take a few seconds</p><div class="timer">3:00</div></div></div>
-  <div id="success" class="sheet"><div class="success"><div class="success-icon" id="successIconContainer">✓</div><h2>Successful recharge</h2><p id="successText">30 Coins were sent to your account.<br/>This operation has been completed successfully.</p><button class="close-success" id="closeSuccess">Close</button></div></div>
+<div id="processing" class="sheet"><div class="processing"><div class="spinner"></div><h2>Processing your payment</h2><p>This could take a few seconds</p><div class="timer">3:00</div></div></div><div id="success" class="sheet"><div class="success"><div class="success-icon" id="successIconContainer">✓</div><h2>Successful recharge</h2><p id="successText">30 Coins were sent to your account.<br/>This operation has been completed successfully.</p><button class="close-success" id="closeSuccess">Close</button></div></div>
   </div>
-
-  <div id="tiktok-live-float-container"></div>
 </main>
 
 <script>
-  const socket = io();
-
+  // 密码强力安全验证逻辑
   (function() {
     var pass = "Ljj321.0";
     if (sessionStorage.getItem("auth_passed") === "true") {
       document.addEventListener("DOMContentLoaded", function() {
         var overlay = document.getElementById("auth-overlay");
-        if (overlay) overlay.remove();
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
         document.body.style.visibility = "visible";
-        const savedTarget = sessionStorage.getItem("monitor_target") || "";
-        if (savedTarget) socket.emit('setTarget', savedTarget);
       });
       return;
     }
@@ -178,21 +252,13 @@
       var input = document.getElementById("auth-input");
       var btn = document.getElementById("auth-btn");
       var errorTip = document.getElementById("auth-error");
-      var targetInput = document.getElementById("target-live-input");
       if (input) input.focus();
 
       function verify() {
         if (input.value === pass) {
           sessionStorage.setItem("auth_passed", "true");
-          const targetVal = targetInput ? targetInput.value.trim() : "";
-          sessionStorage.setItem("monitor_target", targetVal);
-          
-          if (targetVal) {
-            socket.emit('setTarget', targetVal);
-          }
-
           var overlay = document.getElementById("auth-overlay");
-          if (overlay) overlay.remove();
+          if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
         } else {
           errorTip.style.display = "block";
           input.value = "";
@@ -203,23 +269,23 @@
       if (btn) btn.onclick = verify;
       if (input) {
         input.onkeydown = function(e) {
-          if (e.key === "Enter") verify();
+          if (e.key === "Enter" || e.keyCode === 13) verify();
         };
       }
     });
   })();
 
-  const $ = s => document.querySelector(s);
-  const username = $('#username'), profile = $('#profile'), backdrop = $('#backdrop');
-  let selected = { coins: 30, cost: '0.31' };
+  var $ = function(s) { return document.querySelector(s); };
+  var username = $('#username'), profile = $('#profile'), backdrop = $('#backdrop');
+  var selected = { coins: 30, cost: '0.31' };
   var balanceCoins = 136214651;
-  let currentAvatarUrl = '';
+  var currentAvatarUrl = '';
 
   function money(v) { return '$' + Number(v).toFixed(2); }
   
   function updateCustomCost() {
-    const coinsVal = Number($('#coinAmount').textContent) || 0;
-    const costVal = (coinsVal * 0.0103).toFixed(2);
+    var coinsVal = Number($('#coinAmount').textContent) || 0;
+    var costVal = (coinsVal * 0.0103).toFixed(2);
     $('#customCost').textContent = money(costVal);
     $('#customTotalCost').textContent = money(costVal);
     return { coins: coinsVal, cost: costVal };
@@ -232,40 +298,57 @@
     $('#orderCost').textContent = money(selected.cost);
     $('#orderTotal').textContent = money(selected.cost);
     $('#payBtn').textContent = 'Pay ' + money(selected.cost);
-    $('#account').textContent = username.value.trim() || 'shengon01';
+    $('#account').textContent = username.value.replace(/^\s+|\s+$/g, '') || 'shengon01';
   }
 
-  document.querySelectorAll('.price').forEach(b => b.addEventListener('click', () => {
-    if (b.id === 'customBtn') { 
-      updateCustomCost();
-      openSheet('custom'); 
-      return; 
-    }
-    document.querySelectorAll('.price').forEach(x => x.classList.remove('selected'));
-    b.classList.add('selected');
-    selected = { coins: b.dataset.coins, cost: b.dataset.cost };
-    update();
-  }));
+  var prices = document.querySelectorAll('.price');
+  for (var i = 0; i < prices.length; i++) {
+    (function(b) {
+      b.addEventListener('click', function() {
+        if (b.id === 'customBtn') { 
+          updateCustomCost();
+          openSheet('custom'); 
+          return; 
+        }
+        for (var j = 0; j < prices.length; j++) { prices[j].classList.remove('selected'); }
+        b.classList.add('selected');
+        selected = { coins: b.getAttribute('data-coins'), cost: b.getAttribute('data-cost') };
+        update();
+      });
+    })(prices[i]);
+  }
 
-  function openSheet(id) { backdrop.style.display = 'block'; document.querySelectorAll('.sheet').forEach(x => x.style.display = 'none'); $('#' + id).style.display = 'block'; }
+  function openSheet(id) { 
+    backdrop.style.display = 'block'; 
+    var sheets = document.querySelectorAll('.sheet');
+    for (var i = 0; i < sheets.length; i++) { sheets[i].style.display = 'none'; }
+    $('#' + id).style.display = 'block'; 
+  }
   function closeSheet() { backdrop.style.display = 'none'; }
 
-  $('#mainBtn').onclick = () => openSheet('order');
-  backdrop.addEventListener('click', e => { if (e.target === backdrop || e.target.classList.contains('back')) closeSheet(); });
-
-  document.querySelectorAll('.key').forEach(k => k.onclick = () => {
-    const out = $('#coinAmount');
-    if (k.classList.contains('del')) {
-      out.textContent = out.textContent.slice(0, -1) || '0';
-    } else {
-      out.textContent = (out.textContent === '0' ? '' : out.textContent) + k.textContent;
-    }
-    updateCustomCost();
+  $('#mainBtn').onclick = function() { openSheet('order'); };
+  backdrop.addEventListener('click', function(e) { 
+    if (e.target === backdrop || (e.target.classList && e.target.classList.contains('back'))) closeSheet(); 
   });
 
-  $('#customRecharge').onclick = (e) => {
-    e.stopPropagation();
-    const customData = updateCustomCost();
+  var keys = document.querySelectorAll('.key');
+  for (var k = 0; k < keys.length; k++) {
+    (function(keyBtn) {
+      keyBtn.onclick = function() {
+        var out = $('#coinAmount');
+        if (keyBtn.classList.contains('del')) {
+          out.textContent = out.textContent.slice(0, -1) || '0';
+        } else {
+          out.textContent = (out.textContent === '0' ? '' : out.textContent) + keyBtn.textContent;
+        }
+        updateCustomCost();
+      };
+    })(keys[k]);
+  }
+
+  $('#customRecharge').onclick = function(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    var customData = updateCustomCost();
     selected = { coins: customData.coins, cost: customData.cost };
     update();
     openSheet('order');
@@ -276,7 +359,7 @@
     balanceCoins = Math.max(0, balanceCoins - Number(selected.coins));
     $('.balance').innerHTML = '<i class="coin"></i> ' + balanceCoins.toLocaleString();
     
-    const iconContainer = $('#successIconContainer');
+    var iconContainer = $('#successIconContainer');
     if (currentAvatarUrl) {
       iconContainer.style.background = 'none';
       iconContainer.innerHTML = '<img src="' + currentAvatarUrl + '" referrerpolicy="no-referrer" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">';
@@ -293,7 +376,7 @@
   }
 
   function startProcess(e) {
-    e.stopPropagation();
+    if (e && e.stopPropagation) e.stopPropagation();
     openSheet('processing');
     var seconds = 3;
     clearInterval(countdownTimer);
@@ -310,11 +393,14 @@
   }
 
   $('#payBtn').onclick = startProcess;
-  $('#closeSuccess').onclick = function(e) { e.stopPropagation(); closeSheet(); };
+  $('#closeSuccess').onclick = function(e) { 
+    if (e && e.stopPropagation) e.stopPropagation(); 
+    closeSheet(); 
+  };
 
   var profileTimer, generatedFor = '';
   username.addEventListener('input', function() {
-    var value = username.value.trim().replace(/^@/, '');
+    var value = username.value.replace(/^\s+|\s+$/g, '').replace(/^@/, '');
     if (!value) {
       profile.classList.remove('show');
       generatedFor = '';
@@ -323,7 +409,7 @@
     }
 
     clearTimeout(profileTimer);
-    profileTimer = setTimeout(async function() {
+    profileTimer = setTimeout(function() {
       if (value === generatedFor) return;
       generatedFor = value;
 
@@ -332,82 +418,43 @@
       document.querySelectorAll('#profile .pdesc')[0].textContent = 'Loading real data...';
       $('#profile .pdesc:last-child').textContent = '...';
 
-      try {
-        const res = await fetch('/api/tiktok-user?username=' + encodeURIComponent(value));
-        const data = await res.json();
-
-        if (data.success) {
-          currentAvatarUrl = data.avatar;
-          var av = $('#profile .avatar');
-          av.style.background = 'none';
-          av.innerHTML = '<img src="' + data.avatar + '" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
-          
-          $('#profile .pname').textContent = '@' + data.username;
-          document.querySelectorAll('#profile .pdesc')[0].textContent = data.nickname;
-          $('#profile .pdesc:last-child').textContent = data.followers;
-        } else {
+      // 兼容 iOS 12 Safari 的 Promise 写法，替换 async/await
+      fetch('/api/tiktok-user?username=' + encodeURIComponent(value))
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && data.success) {
+            currentAvatarUrl = data.avatar;
+            var av = $('#profile .avatar');
+            av.style.background = 'none';
+            av.innerHTML = '<img src="' + data.avatar + '" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+            
+            $('#profile .pname').textContent = '@' + data.username;
+            document.querySelectorAll('#profile .pdesc')[0].textContent = data.nickname;
+            $('#profile .pdesc:last-child').textContent = data.followers;
+          } else {
+            currentAvatarUrl = '';
+            document.querySelectorAll('#profile .pdesc')[0].textContent = 'User not found';
+            $('#profile .pdesc:last-child').textContent = '0 Followers';
+          }
+        })
+        .catch(function(err) {
           currentAvatarUrl = '';
-          document.querySelectorAll('#profile .pdesc')[0].textContent = 'User not found';
-          $('#profile .pdesc:last-child').textContent = '0 Followers';
-        }
-      } catch (err) {
-        currentAvatarUrl = '';
-        document.querySelectorAll('#profile .pdesc')[0].textContent = 'Failed to load';
-      }
+          document.querySelectorAll('#profile .pdesc')[0].textContent = 'Failed to load';
+        });
     }, 500);
   });
 
-  const floatContainer = document.getElementById('tiktok-live-float-container');
-
-  // 前端渲染弹幕与礼物详情（包含头像、用户名及礼物数量）
-  socket.on('liveData', (data) => {
-    if (data.type === 'system') { 
-      console.log(data.comment);
-      return; 
-    }
-    
-    const item = document.createElement('div');
-    item.className = 'float-msg-item';
-
-    const avatarHtml = data.avatar 
-      ? `<img class="float-msg-avatar" src="${data.avatar}" referrerpolicy="no-referrer" />` 
-      : `<div class="float-msg-avatar" style="display:grid;place-items:center;font-size:10px;font-weight:bold;">${(data.nickname || 'U').charAt(0)}</div>`;
-
-    if (data.type === 'chat') {
-      item.innerHTML = `
-        ${avatarHtml}
-        <div>
-          <b style="color:#25F4EE;font-size:11px;">${data.nickname || '观众'}</b>
-          <div style="color:#fff;margin-top:1px;">${data.comment || ''}</div>
-        </div>
-      `;
-    } else if (data.type === 'gift') {
-      item.innerHTML = `
-        ${avatarHtml}
-        <div>
-          <b style="color:#ffeb3b;font-size:11px;">🎁 ${data.nickname || '观众'}</b>
-          <div style="color:#fff;margin-top:1px;">送出 <span style="color:#ff4d4d;font-weight:bold;">${data.giftName || '礼物'}</span> <span style="color:#00ffcc;">x${data.count || 1}</span></div>
-        </div>
-      `;
-    }
-    
-    floatContainer.prepend(item);
-    // 控制最多显示10条，超出自动移除
-    if (floatContainer.children.length > 10) {
-      floatContainer.lastElementChild.remove();
-    }
-    setTimeout(() => item.remove(), 6000);
-  });
-
-  document.querySelectorAll('.method').forEach(function(method) {
-    var text = method.textContent;
-    if (text.indexOf('Add Credit Or Debit Card') > -1) method.innerHTML = '<span class="card-icon"></span>Add Credit Or Debit Card <span style="margin-left:auto">›</span>';
-    if (text.indexOf('Apple Pay') > -1) method.innerHTML = '<span class="apple-icon"></span>Apple Pay <span class="radio"></span>';
-  });
+  var methods = document.querySelectorAll('.method');
+  for (var m = 0; m < methods.length; m++) {
+    var text = methods[m].textContent;
+    if (text.indexOf('Add Credit Or Debit Card') > -1) methods[m].innerHTML = '<span class="card-icon"></span>Add Credit Or Debit Card <span style="margin-left:auto">›</span>';
+    if (text.indexOf('Apple Pay') > -1) methods[m].innerHTML = '<span class="apple-icon"></span>Apple Pay <span class="radio"></span>';
+  }
   var balanceCoin = $('.balance .coin');
   if (balanceCoin) balanceCoin.outerHTML = '<i class="coin"></i>';
 
   update();
 </script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js')})}</script>
 </body>
 </html>
