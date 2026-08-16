@@ -25,23 +25,21 @@
     -webkit-touch-callout: none;
   }
 
-  /* 全屏绝对安全遮罩层（向下兼容：替换 inset:0 为 top/left/right/bottom） */
+  /* 全屏绝对安全遮罩层 */
   #auth-overlay {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    inset: 0;
     background: #111214;
     z-index: 999999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: grid;
+    place-items: center;
     visibility: visible !important;
   }
   .auth-box {
     background: #1a1b1e;
     padding: 24px;
     border-radius: 14px;
-    width: 90%;
-    max-width: 340px;
+    width: min(90vw, 340px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     color: #fff;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
@@ -79,9 +77,9 @@
 <style>
   :root{--bg:#f4f4f6;--card:#fff;--ink:#151515;--muted:#73747a;--line:#e8e8eb;--pink:#fe1742;--soft:#f1f1f3;--green:#28a85b}
   *{box-sizing:border-box} html,body{margin:0;min-height:100%;background:#202124;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:var(--ink)}
-  body{display:flex;justify-content:center}.phone{width:100%;max-width:430px;min-height:100vh;background:var(--bg);overflow:hidden;position:relative}
+  body{display:flex;justify-content:center}.phone{width:min(100vw,430px);min-height:100vh;background:var(--bg);overflow:hidden;position:relative}
   
-  /* 顶部适配安全区 */
+  /* 顶部适配安全区：避免被灵动岛/刘海遮挡 */
   .status{height:54px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-weight:700;font-size:15px;padding-top:env(safe-area-inset-top);height:calc(54px + env(safe-area-inset-top))}
   .status .island{width:157px;height:34px;border-radius:22px;background:#000;position:relative}.island:before{content:"";position:absolute;left:15px;top:13px;width:8px;height:8px;background:#ef163a;border-radius:50%}.status .right{font-size:12px;letter-spacing:2px}
   
@@ -111,8 +109,8 @@
   .custom{font-size:14px}
   .invite{display:flex;align-items:center;gap:10px}.wave{font-size:30px}.invite .arrow{margin-left:auto;font-size:24px;font-weight:300}.invite strong{font-size:13px}.invite p{margin:3px 0 0;font-size:11px;color:#777}
   
-  /* 底部悬浮按钮 */
-  .sticky{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(255,255,255,.96);padding:8px 15px max(14px, env(safe-area-inset-bottom));box-shadow:0 -3px 14px rgba(0,0,0,.08);z-index:4}
+  /* 底部悬浮按钮适配安全区：避免被底部小横条遮挡 */
+  .sticky{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100vw,430px);background:rgba(255,255,255,.96);padding:8px 15px max(14px, env(safe-area-inset-bottom));box-shadow:0 -3px 14px rgba(0,0,0,.08);z-index:4}
   
   .special{font-size:12px;color:#666;margin:0 0 8px}.special b{float:right;color:#b32645}
   .paybtn,.rechargebtn{height:44px;width:100%;border:0;border-radius:9px;background:var(--pink);color:#fff;font-size:15px;font-weight:750}
@@ -120,7 +118,7 @@
   .legal{font-size:10px;color:#666;line-height:13px;margin:0 0 10px}.legal b{color:#222}
   .bottomrow{display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:750;margin-bottom:10px}.bottomrow span:last-child{font-size:16px}
   
-  .sheet-backdrop{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.42);z-index:5;display:none}
+  .sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:5;display:none}
   .sheet{position:absolute;bottom:0;left:0;width:100%;background:#fff;border-radius:16px 16px 0 0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom)}
   .sheet.show{display:block}
   .sheet-head{height:47px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:750;position:relative}
@@ -183,20 +181,20 @@
   .sheet-backdrop{z-index:10}
   .sheet{z-index:30}
   .success{min-height:390px;padding:82px 20px 30px;text-align:center}
-  .success-icon{width:56px;height:56px;border-radius:50%;background:#d6ffe3;color:#16a34a;display:flex;justify-content:center;align-items:center;font-size:31px;margin:0 auto 22px}
+  .success-icon{width:56px;height:56px;border-radius:50%;background:#d6ffe3;color:#16a34a;display:grid;place-items:center;font-size:31px;margin:0 auto 22px}
   .success h2{font-size:17px;margin:0 0 10px}
   .success p{font-size:13px;color:#777;line-height:19px;margin:0 auto 24px;max-width:280px}
   .close-success{height:44px;width:100%;border:0;border-radius:8px;background:var(--pink);color:#fff;font-weight:750;font-size:15px}
   .spinner{width:54px;height:27px;border:4px solid transparent;border-top-color:var(--pink);border-radius:54px 54px 0 0;animation:spin 1s linear infinite;transform-origin:center}@keyframes spin{to{transform:rotate(360deg)}}
-  .avatar{display:flex;justify-content:center;align-items:center;overflow:hidden;font-size:25px;font-weight:800;color:#fff}.avatar:after{display:none}
-  .coin{display:inline-block;width:17px;height:17px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff29a 0 12%,#ffd92f 13% 55%,#e3aa13 100%);border:1px solid #e2af18;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 1px 1px rgba(0,0,0,.12);font-size:0;vertical-align:-3px;position:relative;text-align:center;line-height:15px;color:#b77b09;font-weight:800}.coin:after{content:'$';font-size:10px}
+  .avatar{display:grid;place-items:center;overflow:hidden;font-size:25px;font-weight:800;color:#fff}.avatar:after{display:none}
+  .coin{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff29a 0 12%,#ffd92f 13% 55%,#e3aa13 100%);border:1px solid #e2af18;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 1px 1px rgba(0,0,0,.12);font-size:0;vertical-align:-3px;position:relative}.coin:after{content:'$';font-size:10px;font-weight:800;color:#b77b09;line-height:1}
   .price>span{display:flex;align-items:center;justify-content:center;gap:3px;line-height:1}.price>span .coin{flex:0 0 17px;vertical-align:0}
   .balance{display:flex;align-items:center;gap:4px;line-height:1.2}.balance .coin{flex:0 0 17px;vertical-align:0}
   .wave{display:flex;align-items:center;gap:2px}.wave .coin{vertical-align:0}
-  .desktop-card{display:flex;align-items:center;gap:10px}.desktop-icon{width:42px;height:42px;border-radius:8px;background:linear-gradient(145deg,#87b7e3,#d9ebfb);display:flex;justify-content:center;align-items:center;font-size:22px}.desktop-card strong{font-size:13px}.desktop-card p{margin:3px 0 0;font-size:11px;color:#777}.desktop-card .arrow{margin-left:auto;font-size:24px;color:#777}
+  .desktop-card{display:flex;align-items:center;gap:10px}.desktop-icon{width:42px;height:42px;border-radius:8px;background:linear-gradient(145deg,#87b7e3,#d9ebfb);display:grid;place-items:center;font-size:22px}.desktop-card strong{font-size:13px}.desktop-card p{margin:3px 0 0;font-size:11px;color:#777}.desktop-card .arrow{margin-left:auto;font-size:24px;color:#777}
 </style>
 <style>
-  .card-icon,.apple-icon{width:20px;height:20px;display:inline-flex;justify-content:center;align-items:center;margin-right:12px;flex:0 0 20px}.card-icon{border:1.5px solid #222;border-radius:3px;position:relative}.card-icon:after{content:'';width:14px;height:2px;background:#222;position:absolute;top:5px;left:2px}.apple-icon{background:#050505;border-radius:5px;color:#fff;font-size:11px;font-weight:800;position:relative}.apple-icon:before{content:'●';line-height:1}.apple-icon:after{content:'';position:absolute;width:5px;height:2px;background:#050505;right:2px;top:2px;transform:rotate(-35deg)}
+  .card-icon,.apple-icon{width:20px;height:20px;display:inline-grid;place-items:center;margin-right:12px;flex:0 0 20px}.card-icon{border:1.5px solid #222;border-radius:3px;position:relative}.card-icon:after{content:'';width:14px;height:2px;background:#222;position:absolute;top:5px;left:2px}.apple-icon{background:#050505;border-radius:5px;color:#fff;font-size:11px;font-weight:800;position:relative}.apple-icon:before{content:'●';line-height:1}.apple-icon:after{content:'';position:absolute;width:5px;height:2px;background:#050505;right:2px;top:2px;transform:rotate(-35deg)}
   .desktop-icon{font-size:0;position:relative}.desktop-icon:before{content:'';width:16px;height:24px;border:2px solid #4d85bd;border-radius:4px;display:block}.desktop-icon:after{content:'';position:absolute;width:4px;height:2px;border-radius:2px;background:#4d85bd;bottom:7px;left:19px}
   .spinner{width:40px;height:40px;padding:0;border:4px solid transparent;border-top-color:var(--pink);border-right-color:var(--pink);border-radius:50%;animation:spin 1s linear infinite;transform-origin:center}
   .tiktok{font-size:0;background-color:#060606;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%2325F4EE' d='M18.5 5.2v13.2a5.2 5.2 0 1 1-4.2-5.1v4.3a1.4 1.4 0 1 0 .8 1.3V8.1h4.1c.4 2.2 1.8 3.8 4 4.5v4.1c-2-.3-3.7-1.1-4.7-2.2z'/%3E%3Cpath fill='%23FE2C55' d='M20.5 3.8v13.3a5.2 5.2 0 1 1-4.2-5.1v4.3a1.4 1.4 0 1 0 .8 1.3V6.7h4.1c.4 2.2 1.8 3.8 4 4.5v4.1c-2-.3-3.7-1.1-4.7-2.2z'/%3E%3Cpath fill='white' d='M19.4 4.7v13.3a5.2 5.2 0 1 1-4.2-5.1v4.3a1.4 1.4 0 1 0 .8 1.3V7.6h4.1c.4 2.2 1.8 3.8 4 4.5v2.2c-2-.4-3.7-1.3-4.7-2.4z'/%3E%3C/svg%3E");background-position:center;background-repeat:no-repeat;background-size:23px 23px}
@@ -241,7 +239,7 @@
     if (sessionStorage.getItem("auth_passed") === "true") {
       document.addEventListener("DOMContentLoaded", function() {
         var overlay = document.getElementById("auth-overlay");
-        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        if (overlay) overlay.remove();
         document.body.style.visibility = "visible";
       });
       return;
@@ -258,7 +256,7 @@
         if (input.value === pass) {
           sessionStorage.setItem("auth_passed", "true");
           var overlay = document.getElementById("auth-overlay");
-          if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          if (overlay) overlay.remove();
         } else {
           errorTip.style.display = "block";
           input.value = "";
@@ -269,23 +267,23 @@
       if (btn) btn.onclick = verify;
       if (input) {
         input.onkeydown = function(e) {
-          if (e.key === "Enter" || e.keyCode === 13) verify();
+          if (e.key === "Enter") verify();
         };
       }
     });
   })();
 
-  var $ = function(s) { return document.querySelector(s); };
-  var username = $('#username'), profile = $('#profile'), backdrop = $('#backdrop');
-  var selected = { coins: 30, cost: '0.31' };
+  const $ = s => document.querySelector(s);
+  const username = $('#username'), profile = $('#profile'), backdrop = $('#backdrop');
+  let selected = { coins: 30, cost: '0.31' };
   var balanceCoins = 136214651;
-  var currentAvatarUrl = '';
+  let currentAvatarUrl = '';
 
   function money(v) { return '$' + Number(v).toFixed(2); }
   
   function updateCustomCost() {
-    var coinsVal = Number($('#coinAmount').textContent) || 0;
-    var costVal = (coinsVal * 0.0103).toFixed(2);
+    const coinsVal = Number($('#coinAmount').textContent) || 0;
+    const costVal = (coinsVal * 0.0103).toFixed(2);
     $('#customCost').textContent = money(costVal);
     $('#customTotalCost').textContent = money(costVal);
     return { coins: coinsVal, cost: costVal };
@@ -298,57 +296,40 @@
     $('#orderCost').textContent = money(selected.cost);
     $('#orderTotal').textContent = money(selected.cost);
     $('#payBtn').textContent = 'Pay ' + money(selected.cost);
-    $('#account').textContent = username.value.replace(/^\s+|\s+$/g, '') || 'shengon01';
+    $('#account').textContent = username.value.trim() || 'shengon01';
   }
 
-  var prices = document.querySelectorAll('.price');
-  for (var i = 0; i < prices.length; i++) {
-    (function(b) {
-      b.addEventListener('click', function() {
-        if (b.id === 'customBtn') { 
-          updateCustomCost();
-          openSheet('custom'); 
-          return; 
-        }
-        for (var j = 0; j < prices.length; j++) { prices[j].classList.remove('selected'); }
-        b.classList.add('selected');
-        selected = { coins: b.getAttribute('data-coins'), cost: b.getAttribute('data-cost') };
-        update();
-      });
-    })(prices[i]);
-  }
+  document.querySelectorAll('.price').forEach(b => b.addEventListener('click', () => {
+    if (b.id === 'customBtn') { 
+      updateCustomCost();
+      openSheet('custom'); 
+      return; 
+    }
+    document.querySelectorAll('.price').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected');
+    selected = { coins: b.dataset.coins, cost: b.dataset.cost };
+    update();
+  }));
 
-  function openSheet(id) { 
-    backdrop.style.display = 'block'; 
-    var sheets = document.querySelectorAll('.sheet');
-    for (var i = 0; i < sheets.length; i++) { sheets[i].style.display = 'none'; }
-    $('#' + id).style.display = 'block'; 
-  }
+  function openSheet(id) { backdrop.style.display = 'block'; document.querySelectorAll('.sheet').forEach(x => x.style.display = 'none'); $('#' + id).style.display = 'block'; }
   function closeSheet() { backdrop.style.display = 'none'; }
 
-  $('#mainBtn').onclick = function() { openSheet('order'); };
-  backdrop.addEventListener('click', function(e) { 
-    if (e.target === backdrop || (e.target.classList && e.target.classList.contains('back'))) closeSheet(); 
+  $('#mainBtn').onclick = () => openSheet('order');
+  backdrop.addEventListener('click', e => { if (e.target === backdrop || e.target.classList.contains('back')) closeSheet(); });
+
+  document.querySelectorAll('.key').forEach(k => k.onclick = () => {
+    const out = $('#coinAmount');
+    if (k.classList.contains('del')) {
+      out.textContent = out.textContent.slice(0, -1) || '0';
+    } else {
+      out.textContent = (out.textContent === '0' ? '' : out.textContent) + k.textContent;
+    }
+    updateCustomCost();
   });
 
-  var keys = document.querySelectorAll('.key');
-  for (var k = 0; k < keys.length; k++) {
-    (function(keyBtn) {
-      keyBtn.onclick = function() {
-        var out = $('#coinAmount');
-        if (keyBtn.classList.contains('del')) {
-          out.textContent = out.textContent.slice(0, -1) || '0';
-        } else {
-          out.textContent = (out.textContent === '0' ? '' : out.textContent) + keyBtn.textContent;
-        }
-        updateCustomCost();
-      };
-    })(keys[k]);
-  }
-
-  $('#customRecharge').onclick = function(e) {
-    if (e && e.stopPropagation) e.stopPropagation();
-    var customData = updateCustomCost();
+  $('#customRecharge').onclick = (e) => {
+    e.stopPropagation();
+    const customData = updateCustomCost();
     selected = { coins: customData.coins, cost: customData.cost };
     update();
     openSheet('order');
@@ -359,7 +340,7 @@
     balanceCoins = Math.max(0, balanceCoins - Number(selected.coins));
     $('.balance').innerHTML = '<i class="coin"></i> ' + balanceCoins.toLocaleString();
     
-    var iconContainer = $('#successIconContainer');
+    const iconContainer = $('#successIconContainer');
     if (currentAvatarUrl) {
       iconContainer.style.background = 'none';
       iconContainer.innerHTML = '<img src="' + currentAvatarUrl + '" referrerpolicy="no-referrer" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">';
@@ -376,7 +357,7 @@
   }
 
   function startProcess(e) {
-    if (e && e.stopPropagation) e.stopPropagation();
+    e.stopPropagation();
     openSheet('processing');
     var seconds = 3;
     clearInterval(countdownTimer);
@@ -393,14 +374,11 @@
   }
 
   $('#payBtn').onclick = startProcess;
-  $('#closeSuccess').onclick = function(e) { 
-    if (e && e.stopPropagation) e.stopPropagation(); 
-    closeSheet(); 
-  };
+  $('#closeSuccess').onclick = function(e) { e.stopPropagation(); closeSheet(); };
 
   var profileTimer, generatedFor = '';
   username.addEventListener('input', function() {
-    var value = username.value.replace(/^\s+|\s+$/g, '').replace(/^@/, '');
+    var value = username.value.trim().replace(/^@/, '');
     if (!value) {
       profile.classList.remove('show');
       generatedFor = '';
@@ -409,7 +387,7 @@
     }
 
     clearTimeout(profileTimer);
-    profileTimer = setTimeout(function() {
+    profileTimer = setTimeout(async function() {
       if (value === generatedFor) return;
       generatedFor = value;
 
@@ -418,38 +396,36 @@
       document.querySelectorAll('#profile .pdesc')[0].textContent = 'Loading real data...';
       $('#profile .pdesc:last-child').textContent = '...';
 
-      // 兼容 iOS 12 Safari 的 Promise 写法，替换 async/await
-      fetch('/api/tiktok-user?username=' + encodeURIComponent(value))
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          if (data && data.success) {
-            currentAvatarUrl = data.avatar;
-            var av = $('#profile .avatar');
-            av.style.background = 'none';
-            av.innerHTML = '<img src="' + data.avatar + '" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
-            
-            $('#profile .pname').textContent = '@' + data.username;
-            document.querySelectorAll('#profile .pdesc')[0].textContent = data.nickname;
-            $('#profile .pdesc:last-child').textContent = data.followers;
-          } else {
-            currentAvatarUrl = '';
-            document.querySelectorAll('#profile .pdesc')[0].textContent = 'User not found';
-            $('#profile .pdesc:last-child').textContent = '0 Followers';
-          }
-        })
-        .catch(function(err) {
+      try {
+        const res = await fetch('/api/tiktok-user?username=' + encodeURIComponent(value));
+        const data = await res.json();
+
+        if (data.success) {
+          currentAvatarUrl = data.avatar;
+          var av = $('#profile .avatar');
+          av.style.background = 'none';
+          av.innerHTML = '<img src="' + data.avatar + '" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+          
+          $('#profile .pname').textContent = '@' + data.username;
+          document.querySelectorAll('#profile .pdesc')[0].textContent = data.nickname;
+          $('#profile .pdesc:last-child').textContent = data.followers;
+        } else {
           currentAvatarUrl = '';
-          document.querySelectorAll('#profile .pdesc')[0].textContent = 'Failed to load';
-        });
+          document.querySelectorAll('#profile .pdesc')[0].textContent = 'User not found';
+          $('#profile .pdesc:last-child').textContent = '0 Followers';
+        }
+      } catch (err) {
+        currentAvatarUrl = '';
+        document.querySelectorAll('#profile .pdesc')[0].textContent = 'Failed to load';
+      }
     }, 500);
   });
 
-  var methods = document.querySelectorAll('.method');
-  for (var m = 0; m < methods.length; m++) {
-    var text = methods[m].textContent;
-    if (text.indexOf('Add Credit Or Debit Card') > -1) methods[m].innerHTML = '<span class="card-icon"></span>Add Credit Or Debit Card <span style="margin-left:auto">›</span>';
-    if (text.indexOf('Apple Pay') > -1) methods[m].innerHTML = '<span class="apple-icon"></span>Apple Pay <span class="radio"></span>';
-  }
+  document.querySelectorAll('.method').forEach(function(method) {
+    var text = method.textContent;
+    if (text.indexOf('Add Credit Or Debit Card') > -1) method.innerHTML = '<span class="card-icon"></span>Add Credit Or Debit Card <span style="margin-left:auto">›</span>';
+    if (text.indexOf('Apple Pay') > -1) method.innerHTML = '<span class="apple-icon"></span>Apple Pay <span class="radio"></span>';
+  });
   var balanceCoin = $('.balance .coin');
   if (balanceCoin) balanceCoin.outerHTML = '<i class="coin"></i>';
 
